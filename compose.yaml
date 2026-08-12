@@ -1,0 +1,11 @@
+name: vehicle-hub-frontend
+
+services:
+  frontend:
+    build:
+      context: .
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api/v1}
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    restart: unless-stopped

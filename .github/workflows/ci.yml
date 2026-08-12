@@ -1,0 +1,73 @@
+name: Frontend CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test-build-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check and build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'http://localhost:8000/api/v1' }}
+        run: npm run build
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and optionally publish image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ github.event_name == 'push' }}
+          build-args: |
+            VITE_API_URL=${{ vars.VITE_API_URL || 'http://localhost:8000/api/v1' }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/vehicle-hub-fe:latest
+            ghcr.io/${{ github.repository_owner }}/vehicle-hub-fe:${{ github.sha }}
+
+  deploy-local:
+    name: Deploy to local Docker
+    needs: test-build-publish
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, vehicle-hub-fe]
+
+    steps:
+      - name: Add Docker Desktop to PATH
+        run: echo "/Applications/Docker.app/Contents/Resources/bin" >> "$GITHUB_PATH"
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build and start frontend
+        run: docker compose up -d --build --remove-orphans
+
+      - name: Show container status
+        run: docker compose ps

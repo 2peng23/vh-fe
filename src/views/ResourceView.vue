@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from "vue";
-import { Plus, X } from "lucide-vue-next";
+import { onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { useRoute } from "vue-router";
+import { Plus, Search, X } from "lucide-vue-next";
 import api, { errorMessage } from "../api/client";
 import type { ApiEnvelope, PaginationMeta } from "../types";
 import PageHeader from "../components/PageHeader.vue";
@@ -11,6 +12,7 @@ import PaginationControls from "../components/PaginationControls.vue";
 import { formatDate } from "../utils/date";
 import { useAuthStore } from "../stores/auth";
 const auth = useAuthStore();
+const route = useRoute();
 const props = defineProps<{
     resource: string;
     title: string;
@@ -24,12 +26,13 @@ const props = defineProps<{
   modal = ref(false),
   saving = ref(false),
   error = ref(""),
+  search = ref(String(route.query.search || "")),
   form = reactive<Record<string, any>>({});
 async function load() {
   loading.value = true;
   try {
     const { data } = await api.get<ApiEnvelope<any[]>>(`/${props.resource}`, {
-      params: { page: page.value, per_page: perPage.value },
+      params: { page: page.value, per_page: perPage.value, search: search.value },
     });
     rows.value = data.data;
     meta.value = data.meta;
@@ -78,11 +81,26 @@ async function save() {
 }
 onMounted(load);
 watch(() => props.resource, load);
+let searchTimer: number;
+watch(search, () => {
+  clearTimeout(searchTimer);
+  searchTimer = window.setTimeout(() => {
+    page.value = 1;
+    load();
+  }, 300);
+});
+watch(
+  () => route.query.search,
+  (value) => {
+    search.value = String(value || "");
+  },
+);
 watch(page, load);
 watch(perPage, () => {
   page.value = 1;
   load();
 });
+onBeforeUnmount(() => clearTimeout(searchTimer));
 </script>
 <template>
   <div>
@@ -92,6 +110,14 @@ watch(perPage, () => {
         {{ resource === "drivers" ? "driver" : "assignment" }}
       </button></PageHeader
     >
+    <div v-if="resource === 'drivers'" class="toolbar">
+      <div class="search-input">
+        <Search /><input
+          v-model="search"
+          placeholder="Search name, employee number, contact or license"
+        />
+      </div>
+    </div>
     <div class="alert error" v-if="error">{{ error }}</div>
     <LoadingState v-if="loading" /><EmptyState
       v-else-if="!rows.length"

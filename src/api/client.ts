@@ -12,7 +12,26 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(undefined, (error) => {
+  if (error.response?.status === 403 && error.response?.data?.code === "PLAN_ENDED") {
+    const session = error.response?.data?.data;
+    if (session?.token && session?.user) {
+      localStorage.setItem("vehiclehub_token", session.token);
+      localStorage.setItem("vehiclehub_user", JSON.stringify(session.user));
+    }
+    if (!location.pathname.startsWith("/plan-ended")) location.assign("/plan-ended");
+  }
   if (error.response?.status === 401) {
+    const adminToken = localStorage.getItem("vehiclehub_admin_token");
+    const adminUser = localStorage.getItem("vehiclehub_admin_user");
+    if (adminToken && adminUser) {
+      localStorage.setItem("vehiclehub_token", adminToken);
+      localStorage.setItem("vehiclehub_user", adminUser);
+      localStorage.removeItem("vehiclehub_admin_token");
+      localStorage.removeItem("vehiclehub_admin_user");
+      if (!location.pathname.startsWith("/superadmin"))
+        location.assign("/superadmin");
+      return Promise.reject(error);
+    }
     localStorage.removeItem("vehiclehub_token");
     localStorage.removeItem("vehiclehub_user");
     if (!location.pathname.startsWith("/login")) location.assign("/login");

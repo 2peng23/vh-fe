@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRouter, RouterLink } from "vue-router";
-import { Eye, EyeOff, ShieldCheck, CheckCircle2 } from "lucide-vue-next";
+import { Eye, EyeOff, ShieldCheck, CheckCircle2, MessageCircle } from "lucide-vue-next";
 import AppLogo from "../../components/AppLogo.vue";
+import SupportChatView from "../SupportChatView.vue";
 import { useAuthStore } from "../../stores/auth";
 import { errorMessage } from "../../api/client";
 const email = ref("owner1@vh.test"),
@@ -11,12 +12,17 @@ const email = ref("owner1@vh.test"),
   error = ref(""),
   auth = useAuthStore(),
   router = useRouter();
+const supportOpen = ref(false);
 async function submit() {
   error.value = "";
   try {
     await auth.login(email.value, password.value);
     router.push(auth.isSuperAdmin ? "/superadmin" : "/");
   } catch (e) {
+    if ((e as any)?.response?.data?.code === "PLAN_ENDED") {
+      router.push("/plan-ended");
+      return;
+    }
     error.value = errorMessage(e);
   }
 }
@@ -70,6 +76,7 @@ async function submit() {
         <small class="auth-legal"
           >By continuing, you agree to our Terms and Privacy Policy.</small
         >
+        <button type="button" class="login-support-button" @click="supportOpen = true"><MessageCircle />Contact support</button>
       </div>
     </section>
     <section class="auth-showcase">
@@ -90,5 +97,6 @@ async function submit() {
       </div>
       <div class="road-lines"></div>
     </section>
+    <div v-if="supportOpen" class="modal-backdrop support-modal-backdrop" @click.self="supportOpen = false"><SupportChatView embedded guest @close="supportOpen = false" /></div>
   </div>
 </template>

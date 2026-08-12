@@ -7,11 +7,13 @@ withDefaults(
     title?: string;
     message?: string;
     loading?: boolean;
+    confirmLabel?: string;
   }>(),
   {
     title: "Delete record?",
     message: "This action cannot be undone.",
     loading: false,
+    confirmLabel: "Delete",
   },
 );
 
@@ -56,7 +58,7 @@ const emit = defineEmits<{ cancel: []; confirm: [] }>();
           :disabled="loading"
           @click="emit('confirm')"
         >
-          {{ loading ? "Deleting…" : "Delete" }}
+          {{ loading ? `${confirmLabel}…` : confirmLabel }}
         </button>
       </div>
     </section>

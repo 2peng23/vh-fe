@@ -6,7 +6,22 @@ export interface Business {
   timezone: string;
   subscription_plan: string;
   subscription_status: string;
-  trial_ends_at: string | null;
+  vehicle_limit_override: number | null;
+  plan_ends_at: string | null;
+  subscription: {
+    tier: "trial" | "starter" | "business" | "enterprise";
+    label: string;
+    status: string;
+    vehicle_limit: number;
+    default_vehicle_limit: number;
+    has_custom_vehicle_limit: boolean;
+    vehicle_count: number;
+    vehicles_remaining: number;
+    vehicle_limit_reached: boolean;
+    usage_percent: number;
+    plan_ends_at: string | null;
+    plan_ended: boolean;
+  };
 }
 export interface User {
   id: number;

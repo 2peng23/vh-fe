@@ -29,6 +29,10 @@ import VehicleRecordsSection from "../../components/vehicles/VehicleRecordsSecti
 import VehicleEditModal from "../../components/vehicles/VehicleEditModal.vue";
 import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.vue";
 import { formatDate } from "../../utils/date";
+import {
+  vehicleCodeOptions,
+  vehicleDetailTabs as tabs,
+} from "./vehicleDetail.config";
 const route = useRoute(),
   router = useRouter(),
   auth = useAuthStore(),
@@ -63,31 +67,6 @@ const mileagePhoto = ref<File | null>(null);
 const mileageOverride = ref(false);
 const editCodePrefix = ref("");
 const editCodeNumber = ref("");
-const vehicleCodeOptions = [
-  { prefix: "TRK-", type: "Truck", label: "TRK- — Truck" },
-  { prefix: "VAN-", type: "Van", label: "VAN- — Van" },
-  { prefix: "CAR-", type: "Car", label: "CAR- — Car" },
-  { prefix: "BUS-", type: "Bus", label: "BUS- — Bus" },
-  { prefix: "PUP-", type: "Pickup", label: "PUP- — Pickup" },
-  { prefix: "MC-", type: "Motorcycle", label: "MC- — Motorcycle" },
-  { prefix: "SUV-", type: "SUV", label: "SUV- — SUV" },
-  {
-    prefix: "HEQ-",
-    type: "Heavy Equipment",
-    label: "HEQ- — Heavy Equipment",
-  },
-  { prefix: "OTH-", type: "Other", label: "OTH- — Other" },
-];
-const tabs = [
-  ["overview", "Overview"],
-  ["mileage", "Mileage"],
-  ["maintenance", "Maintenance"],
-  ["schedules", "PMS schedules"],
-  ["expenses", "Expenses"],
-  ["documents", "Documents"],
-  ["issues", "Issues"],
-  ["fuel", "Fuel"],
-];
 const visibleTabs = computed(() =>
   tabs.filter(([key]) => key === "overview" || auth.can(`${key}.view`)),
 );

@@ -13,7 +13,9 @@ import AuditLogsView from "../views/AuditLogsView.vue";
 import StaffView from "../views/StaffView.vue";
 import SuperAdminView from "../views/SuperAdminView.vue";
 import PlanEndedView from "../views/auth/PlanEndedView.vue";
+import BusinessDisabledView from "../views/auth/BusinessDisabledView.vue";
 import SupportChatView from "../views/SupportChatView.vue";
+import PlanTransactionsView from "../views/PlanTransactionsView.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -21,6 +23,7 @@ const router = createRouter({
     { path: "/login", component: LoginView, meta: { guest: true } },
     { path: "/register", component: RegisterView, meta: { guest: true } },
     { path: "/plan-ended", component: PlanEndedView, meta: { planEnded: true } },
+    { path: "/business-disabled", component: BusinessDisabledView, meta: { accessBlocked: true } },
     { path: "/support", component: SupportChatView, meta: { ownerSupport: true } },
     {
       path: "/superadmin",
@@ -85,16 +88,40 @@ const router = createRouter({
           meta: { permission: "audit.view" },
         },
         { path: "staff", component: StaffView, meta: { permission: "staff.view" } },
+        {
+          path: "plan-transactions",
+          component: PlanTransactionsView,
+          meta: { ownerTransactions: true },
+        },
       ],
     },
   ],
 });
 router.beforeEach((to) => {
   const logged = !!localStorage.getItem("vehiclehub_token");
-  if (to.meta.planEnded) return;
+  const user = JSON.parse(localStorage.getItem("vehiclehub_user") || "null");
+  const planEnded = user?.business?.subscription?.plan_ended === true;
+  const businessInactive = user?.business?.status === "inactive";
+
+  // Restricted account pages are only available for the matching account state.
+  if (to.meta.accessBlocked) {
+    if (!logged) return "/login";
+    if (!businessInactive) return user?.role === "super_admin" ? "/superadmin" : "/";
+    return;
+  }
+  if (to.meta.planEnded) {
+    if (!logged) return "/login";
+    if (!planEnded || businessInactive) {
+      if (businessInactive) return "/business-disabled";
+      return user?.role === "super_admin" ? "/superadmin" : "/";
+    }
+    return;
+  }
   if (!logged && !to.meta.guest) return "/login";
   if (logged && to.meta.guest) return "/";
-  const user = JSON.parse(localStorage.getItem("vehiclehub_user") || "null");
+  if (businessInactive) return "/business-disabled";
+  if (planEnded && !["/", "/plan-transactions"].includes(to.path)) return "/";
+  if (to.meta.ownerTransactions && user?.role !== "owner") return "/";
   if (to.meta.ownerSupport && user?.role !== "owner")
     return user?.business?.subscription?.plan_ended ? "/plan-ended" : "/";
   if (user?.role === "super_admin" && !to.meta.superadmin && !to.meta.guest)

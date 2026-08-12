@@ -15,9 +15,7 @@ import {
   Wrench,
   FileText,
   Download,
-  Eye,
   Pencil,
-  Plus,
   Trash2,
   X,
 } from "lucide-vue-next";
@@ -27,7 +25,8 @@ import type { ApiEnvelope, PaginationMeta, Vehicle } from "../../types";
 import LoadingState from "../../components/LoadingState.vue";
 import EmptyState from "../../components/EmptyState.vue";
 import StatusBadge from "../../components/StatusBadge.vue";
-import PaginationControls from "../../components/PaginationControls.vue";
+import VehicleRecordsSection from "../../components/vehicles/VehicleRecordsSection.vue";
+import VehicleEditModal from "../../components/vehicles/VehicleEditModal.vue";
 import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.vue";
 import { formatDate } from "../../utils/date";
 const route = useRoute(),
@@ -104,6 +103,7 @@ const remaining = computed(() =>
     ? nextPms.value.next_service_mileage - (vehicle.value?.current_mileage || 0)
     : null,
 );
+/** Load the vehicle and its overview relationships. */
 async function loadVehicle() {
   try {
     const { data } = await api.get<ApiEnvelope<Vehicle>>(
@@ -116,6 +116,7 @@ async function loadVehicle() {
     loading.value = false;
   }
 }
+/** Load the selected operation tab with server-side pagination. */
 async function loadTab() {
   if (tab.value === "overview") return;
   rowsLoading.value = true;
@@ -149,6 +150,7 @@ watch(rowsPerPage, () => {
   loadTab();
 });
 onMounted(loadVehicle);
+/** Populate and open the vehicle edit form. */
 function openEdit() {
   if (!vehicle.value) return;
   editErrors.value = {};
@@ -177,6 +179,7 @@ function openEdit() {
   });
   editModal.value = true;
 }
+/** Persist vehicle changes and refresh the overview. */
 async function saveEdit() {
   editSaving.value = true;
   editErrors.value = {};
@@ -199,6 +202,7 @@ async function saveEdit() {
     editSaving.value = false;
   }
 }
+/** Delete the vehicle after explicit confirmation. */
 async function deleteVehicle() {
   if (!vehicle.value) return;
   deletingVehicle.value = true;
@@ -213,18 +217,21 @@ async function deleteVehicle() {
     deletingVehicle.value = false;
   }
 }
+/** Keep the editable vehicle code aligned with its selected prefix. */
 function selectEditCodePrefix() {
   const option = vehicleCodeOptions.find(
     (item) => item.prefix === editCodePrefix.value,
   );
   if (option) editForm.vehicle_type = option.type;
 }
+/** Apply the default code prefix associated with a vehicle type. */
 function selectEditVehicleType() {
   const option = vehicleCodeOptions.find(
     (item) => item.type === editForm.vehicle_type,
   );
   if (option) editCodePrefix.value = option.prefix;
 }
+/** Return resource-specific defaults for a new record form. */
 function formDefaults() {
   return {
     mileage: { mileage: vehicle.value?.current_mileage || 0, notes: "" },
@@ -272,6 +279,7 @@ function formDefaults() {
     },
   } as Record<string, Record<string, any>>;
 }
+/** Clear transient form and file state before opening a record editor. */
 function resetRecordForm() {
   clearCurrentPhoto();
   documentFile.value = null;
@@ -280,11 +288,13 @@ function resetRecordForm() {
   Object.keys(form).forEach((k) => delete form[k]);
   Object.assign(form, formDefaults()[tab.value]);
 }
+/** Open a clean form for the active vehicle resource. */
 function openForm() {
   editingRow.value = null;
   resetRecordForm();
   modal.value = true;
 }
+/** Load a resource record into the shared editor. */
 async function editRecord(row: any) {
   editingRow.value = row;
   resetRecordForm();
@@ -313,6 +323,7 @@ async function editRecord(row: any) {
     }
   }
 }
+/** Create or update the active vehicle resource record. */
 async function save() {
   saving.value = true;
   try {
@@ -345,9 +356,11 @@ async function save() {
     saving.value = false;
   }
 }
+/** Stage a record for deletion confirmation. */
 function requestDelete(row: any) {
   pendingDelete.value = row;
 }
+/** Delete the staged record and reload its current page. */
 async function deleteRecord() {
   const row = pendingDelete.value;
   if (!row) return;
@@ -363,9 +376,11 @@ async function deleteRecord() {
     deletingId.value = null;
   }
 }
+/** Store the selected document until the record is submitted. */
 function selectDocumentFile(event: Event) {
   documentFile.value = (event.target as HTMLInputElement).files?.[0] || null;
 }
+/** Store and preview the selected odometer image. */
 function selectMileagePhoto(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0] || null;
   mileagePhoto.value = file;
@@ -374,6 +389,7 @@ function selectMileagePhoto(event: Event) {
     currentPhotoUrl.value = URL.createObjectURL(file);
   }
 }
+/** Download a private vehicle document through the authenticated API. */
 async function downloadDocument(row: any) {
   const response = await api.get(`/documents/${row.id}/download`, {
     responseType: "blob",
@@ -385,6 +401,7 @@ async function downloadDocument(row: any) {
   link.click();
   URL.revokeObjectURL(url);
 }
+/** Load a protected mileage photo into the preview modal. */
 async function downloadMileagePhoto(row: any) {
   const response = await api.get(`/mileage/${row.id}/photo`, {
     responseType: "blob",
@@ -394,6 +411,7 @@ async function downloadMileagePhoto(row: any) {
   photoPreviewName.value = row.photo?.split("/").pop() || "odometer-photo.jpg";
   photoPreviewOpen.value = true;
 }
+/** Save the currently previewed mileage image locally. */
 function downloadPreviewPhoto() {
   if (!photoPreviewUrl.value) return;
   const link = document.createElement("a");
@@ -401,6 +419,7 @@ function downloadPreviewPhoto() {
   link.download = photoPreviewName.value;
   link.click();
 }
+/** Close the image preview and release its object URL. */
 function closePhotoPreview() {
   photoPreviewOpen.value = false;
   if (photoPreviewUrl.value) {
@@ -408,6 +427,7 @@ function closePhotoPreview() {
     photoPreviewUrl.value = "";
   }
 }
+/** Remove a pending replacement photo from the form. */
 function clearCurrentPhoto() {
   if (currentPhotoUrl.value) {
     URL.revokeObjectURL(currentPhotoUrl.value);
@@ -419,6 +439,7 @@ onBeforeUnmount(() => {
   closePhotoPreview();
   clearCurrentPhoto();
 });
+/** Return the safe, resource-specific columns rendered in the record table. */
 function columns(row: any) {
   if (tab.value === "mileage") {
     return [
@@ -465,6 +486,7 @@ function columns(row: any) {
     )
     .slice(0, 6);
 }
+/** Resolve derived relation values used by table cells. */
 function cellValue(row: any, column: string) {
   if (column === "record_id") return `#${row.id}`;
   if (column === "performed_by_name") return row.performer?.name || "—";
@@ -475,6 +497,7 @@ function cellValue(row: any, column: string) {
   if (column === "assigned_to_name") return row.assignee?.name || "Unassigned";
   return row[column];
 }
+/** Format nullable scalar table values for display. */
 function pretty(v: any) {
   if (v === null || v === "") return "—";
   if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}(?:T|$)/.test(v))
@@ -631,219 +654,30 @@ function pretty(v: any) {
           </article>
         </div>
       </section>
-      <section v-else>
-        <div class="subpage-head">
-          <div>
-            <h2>{{ tabs.find((t) => t[0] === tab)?.[1] }}</h2>
-            <p>Complete history for this vehicle.</p>
-          </div>
-          <button v-if="auth.can(`${tab}.create`)" class="btn btn-primary" @click="openForm">
-            <Plus />Add record
-          </button>
-        </div>
-        <LoadingState v-if="rowsLoading" /><EmptyState
-          v-else-if="!rows.length"
-          :title="`No ${tab} records`"
-        />
-        <div v-else class="card table-card">
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th v-for="c in columns(rows[0])" :key="c">
-                    {{ c.replaceAll("_", " ") }}
-                  </th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="r in rows" :key="r.id">
-                  <td v-for="c in columns(r)" :key="c">
-                    <button
-                      v-if="c === 'file_path' && r[c]"
-                      class="table-action"
-                      @click="downloadDocument(r)"
-                    >
-                      <Download />Download
-                    </button>
-                    <button
-                      v-else-if="c === 'photo' && r[c]"
-                      class="table-action"
-                      @click="downloadMileagePhoto(r)"
-                    >
-                      <Eye />View photo
-                    </button>
-                    <template v-else>{{ pretty(cellValue(r, c)) }}</template>
-                  </td>
-                  <td>
-                    <div class="row-actions">
-                      <button
-                        v-if="tab === 'maintenance'"
-                        class="icon-btn"
-                        title="View full information"
-                        @click="viewingMaintenance = r"
-                      >
-                        <Eye />
-                      </button>
-                      <button
-                        v-if="auth.can(`${tab}.update`)"
-                        class="icon-btn"
-                        title="Edit record"
-                        @click="editRecord(r)"
-                      >
-                        <Pencil />
-                      </button>
-                      <button
-                        v-if="auth.can(`${tab}.delete`)"
-                        class="icon-btn danger"
-                        title="Delete record"
-                        :disabled="deletingId === r.id"
-                        @click="requestDelete(r)"
-                      >
-                        <Trash2 />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <PaginationControls
-            v-if="rowsMeta"
-            :meta="rowsMeta"
-            v-model:page="rowsPage"
-            v-model:per-page="rowsPerPage"
-          />
-        </div>
-      </section>
-      <div
-        class="modal-backdrop"
-        v-if="editModal"
-        @click.self="editModal = false"
-      >
-        <form class="modal" @submit.prevent="saveEdit">
-          <div class="modal-head">
-            <div>
-              <h2>Edit vehicle</h2>
-              <p>Update identification and vehicle information.</p>
-            </div>
-            <button type="button" class="icon-btn" @click="editModal = false">
-              <X />
-            </button>
-          </div>
-          <div class="field-grid">
-            <label
-              >Plate number<input
-                v-model="editForm.plate_number"
-                required
-              /><small v-if="editErrors.plate_number">{{
-                editErrors.plate_number[0]
-              }}</small></label
-            >
-            <label
-              >Vehicle code type<select
-                v-model="editCodePrefix"
-                @change="selectEditCodePrefix"
-              >
-                <option value="">Custom / legacy code</option>
-                <option
-                  v-for="option in vehicleCodeOptions"
-                  :key="option.prefix"
-                  :value="option.prefix"
-                >
-                  {{ option.label }}
-                </option>
-              </select></label
-            >
-            <label
-              >Vehicle code number<input
-                v-model="editCodeNumber"
-                required
-                maxlength="20"
-                placeholder="Example: 0001"
-              /><small v-if="editErrors.vehicle_code">{{
-                editErrors.vehicle_code[0]
-              }}</small></label
-            >
-            <label
-              >Brand<input v-model="editForm.brand" required /><small
-                v-if="editErrors.brand"
-                >{{ editErrors.brand[0] }}</small
-              ></label
-            >
-            <label
-              >Model<input v-model="editForm.model" required /><small
-                v-if="editErrors.model"
-                >{{ editErrors.model[0] }}</small
-              ></label
-            >
-            <label>Variant<input v-model="editForm.variant" /></label>
-            <label
-              >Year<input
-                v-model.number="editForm.year"
-                type="number"
-                min="1900"
-            /></label>
-            <label
-              >Vehicle type<select
-                v-model="editForm.vehicle_type"
-                required
-                @change="selectEditVehicleType"
-              >
-                <option>Car</option>
-                <option>Van</option>
-                <option>Truck</option>
-                <option>Pickup</option>
-                <option>Motorcycle</option>
-                <option>Bus</option>
-                <option>SUV</option>
-                <option>Heavy Equipment</option>
-                <option>Other</option>
-              </select></label
-            >
-            <label
-              >Current mileage<input
-                v-model.number="editForm.current_mileage"
-                type="number"
-                disabled
-              /><small>Update mileage from the Mileage tab.</small></label
-            >
-            <label>Color<input v-model="editForm.color" /></label>
-            <label
-              >Purchased date<input
-                v-model="editForm.acquisition_date"
-                type="date"
-            /></label>
-            <label
-              >Vehicle cost<input
-                v-model.number="editForm.acquisition_cost"
-                type="number"
-                min="0"
-                step="0.01"
-            /></label>
-            <label
-              >Status<select v-model="editForm.status">
-                <option value="active">Active</option>
-                <option value="maintenance">Maintenance</option>
-                <option value="inactive">Inactive</option>
-                <option value="sold">Sold</option>
-                <option value="disposed">Disposed</option>
-              </select></label
-            >
-            <label class="full"
-              >Notes<textarea v-model="editForm.notes"></textarea>
-            </label>
-          </div>
-          <div class="modal-actions">
-            <button type="button" class="btn" @click="editModal = false">
-              Cancel
-            </button>
-            <button class="btn btn-primary" :disabled="editSaving">
-              {{ editSaving ? "Saving…" : "Save changes" }}
-            </button>
-          </div>
-        </form>
-      </div>
+      <VehicleRecordsSection
+        v-else
+        :title="tabs.find((item) => item[0] === tab)?.[1] || tab"
+        :resource="tab"
+        :rows="rows"
+        :loading="rowsLoading"
+        :meta="rowsMeta"
+        v-model:page="rowsPage"
+        v-model:per-page="rowsPerPage"
+        :can-create="auth.can(`${tab}.create`)"
+        :can-update="auth.can(`${tab}.update`)"
+        :can-delete="auth.can(`${tab}.delete`)"
+        :deleting-id="deletingId"
+        :columns="columns"
+        :cell-value="cellValue"
+        :display-value="pretty"
+        @add="openForm"
+        @edit="editRecord"
+        @remove="requestDelete"
+        @view-maintenance="viewingMaintenance = $event"
+        @download-document="downloadDocument"
+        @view-photo="downloadMileagePhoto"
+      />
+      <VehicleEditModal :open="editModal" :form="editForm" :errors="editErrors" :code-options="vehicleCodeOptions" v-model:code-prefix="editCodePrefix" v-model:code-number="editCodeNumber" :saving="editSaving" @close="editModal = false" @save="saveEdit" @select-code-prefix="selectEditCodePrefix" @select-vehicle-type="selectEditVehicleType" />
       <div class="modal-backdrop" v-if="modal" @click.self="modal = false">
         <form class="modal small-modal" @submit.prevent="save">
           <div class="modal-head">

@@ -19,6 +19,7 @@ import {
   UserCog,
   ShieldCheck,
   MessageCircle,
+  CreditCard,
 } from "lucide-vue-next";
 import AppLogo from "../components/AppLogo.vue";
 import SupportChatView from "../views/SupportChatView.vue";
@@ -49,7 +50,13 @@ const operations = [
   { to: "/issues", label: "Issues", icon: TriangleAlert, permission: "issues.view" },
   { to: "/documents", label: "Documents", icon: FileText, permission: "documents.view" },
 ];
-onMounted(() => auth.fetchMe().catch(() => undefined));
+function syncAccessState() {
+  auth.syncCachedUser();
+}
+onMounted(() => {
+  window.addEventListener("vehiclehub-access-changed", syncAccessState);
+  auth.fetchMe().catch(() => undefined);
+});
 let searchTimer: number;
 let supportUnreadTimer: number;
 async function loadSupportUnread() {
@@ -113,10 +120,15 @@ onMounted(() => {
 onBeforeUnmount(() => {
   clearTimeout(searchTimer);
   clearInterval(supportUnreadTimer);
+  window.removeEventListener("vehiclehub-access-changed", syncAccessState);
 });
 async function logout() {
-  await auth.logout();
-  router.push("/login");
+  try {
+    await auth.logout();
+  } finally {
+    profileOpen.value = false;
+    await router.replace("/login");
+  }
 }
 async function returnToSuperAdmin() {
   await auth.stopImpersonating();
@@ -133,27 +145,17 @@ async function returnToSuperAdmin() {
       </div>
       <nav>
         <p class="nav-label">Workspace</p>
-        <RouterLink
-          v-for="item in nav"
-          v-show="auth.can(item.permission)"
-          :key="item.to"
-          :to="item.to"
-          @click="open = false"
-          ><component :is="item.icon" :size="19" /><span>{{
-            item.label
-          }}</span></RouterLink
-        >
+        <template v-for="item in nav" :key="item.to">
+          <span v-if="auth.can(item.permission) && auth.accessRestricted" class="sidebar-nav-item nav-disabled" :class="{ 'restricted-current': item.to === '/' }" aria-disabled="true"><component :is="item.icon" :size="19" /><span>{{ item.label }}</span></span>
+          <RouterLink v-else-if="auth.can(item.permission)" :to="item.to" @click="open = false"><component :is="item.icon" :size="19" /><span>{{ item.label }}</span></RouterLink>
+        </template>
         <p class="nav-label">Operations</p>
-        <RouterLink
-          v-for="item in operations"
-          v-show="auth.can(item.permission)"
-          :key="item.to"
-          :to="item.to"
-          @click="open = false"
-          ><component :is="item.icon" :size="19" /><span>{{
-            item.label
-          }}</span></RouterLink
-        >
+        <template v-for="item in operations" :key="item.to">
+          <span v-if="auth.can(item.permission) && auth.accessRestricted" class="sidebar-nav-item nav-disabled" aria-disabled="true"><component :is="item.icon" :size="19" /><span>{{ item.label }}</span></span>
+          <RouterLink v-else-if="auth.can(item.permission)" :to="item.to" @click="open = false"><component :is="item.icon" :size="19" /><span>{{ item.label }}</span></RouterLink>
+        </template>
+        <RouterLink v-if="auth.isOwner" to="/plan-transactions" @click="open = false"><CreditCard :size="19" /><span>Plan transactions</span></RouterLink>
+        <button v-if="auth.isOwner" type="button" class="sidebar-support-button" :class="{ unread: supportUnread > 0 }" @click="supportOpen = true; open = false"><MessageCircle :size="19" /><span>Support</span><em v-if="supportUnread">{{ supportUnread > 99 ? '99+' : supportUnread }}</em></button>
       </nav>
       <div class="sidebar-foot">
         <div class="trial">
@@ -171,7 +173,7 @@ async function returnToSuperAdmin() {
         <button class="icon-btn mobile-only" @click="open = true">
           <Menu />
         </button>
-        <div class="top-search global-search">
+        <div v-if="!auth.accessRestricted" class="top-search global-search">
           <Search :size="17" /><input
             v-model="globalSearch"
             placeholder="Search vehicles, drivers…"
@@ -215,7 +217,7 @@ async function returnToSuperAdmin() {
           <button v-if="auth.isImpersonating" class="btn impersonation-return" @click="returnToSuperAdmin">
             <ShieldCheck :size="16" />Return to Super Admin
           </button>
-          <RouterLink to="/notifications" class="icon-btn notification"
+          <RouterLink v-if="!auth.accessRestricted" to="/notifications" class="icon-btn notification"
             ><Bell :size="20" /><span></span
           ></RouterLink>
           <button v-if="auth.isOwner" type="button" class="icon-btn support-icon" :class="{ unread: supportUnread > 0 }" title="Contact support" aria-label="Open support chat" @click="supportOpen = true">

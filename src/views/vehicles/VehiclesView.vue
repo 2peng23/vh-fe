@@ -9,6 +9,7 @@ import LoadingState from "../../components/LoadingState.vue";
 import EmptyState from "../../components/EmptyState.vue";
 import StatusBadge from "../../components/StatusBadge.vue";
 import PaginationControls from "../../components/PaginationControls.vue";
+import SupportChatView from "../SupportChatView.vue";
 import { useAuthStore } from "../../stores/auth";
 const auth = useAuthStore();
 const subscription = computed(() => auth.user?.business?.subscription);
@@ -24,6 +25,7 @@ const vehicles = ref<Vehicle[]>([]),
   page = ref(1),
   perPage = ref(20),
   modal = ref(false),
+  supportOpen = ref(false),
   saving = ref(false),
   errors = ref<Record<string, string[]>>({});
 const form = reactive({
@@ -148,7 +150,7 @@ async function save() {
     >
       <strong>{{ subscription.label }} plan:</strong>
       {{ subscription.vehicle_count }} of {{ subscription.vehicle_limit }} vehicle slots used.
-      <span v-if="vehicleLimitReached">Upgrade the subscription to add another vehicle.</span>
+      <span v-if="vehicleLimitReached">Upgrade the subscription to add another vehicle. <button type="button" class="alert-support-link" @click="supportOpen = true">Contact support</button></span>
       <span v-else>{{ subscription.vehicles_remaining }} slots remaining.</span>
     </div>
     <div class="toolbar">
@@ -167,6 +169,7 @@ async function save() {
       </select>
     </div>
     <div class="alert error" v-if="error">{{ error }}</div>
+    <div v-if="supportOpen" class="modal-backdrop support-modal-backdrop" @click.self="supportOpen = false"><SupportChatView embedded @close="supportOpen = false" /></div>
     <LoadingState v-if="loading" /><EmptyState
       v-else-if="!vehicles.length"
       title="No vehicles found"

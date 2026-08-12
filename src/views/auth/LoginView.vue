@@ -19,8 +19,12 @@ async function submit() {
     await auth.login(email.value, password.value);
     router.push(auth.isSuperAdmin ? "/superadmin" : "/");
   } catch (e) {
+    if ((e as any)?.response?.data?.code === "BUSINESS_INACTIVE") {
+      router.push("/business-disabled");
+      return;
+    }
     if ((e as any)?.response?.data?.code === "PLAN_ENDED") {
-      router.push("/plan-ended");
+      router.push("/");
       return;
     }
     error.value = errorMessage(e);

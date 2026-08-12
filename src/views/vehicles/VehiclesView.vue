@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
 import { Plus, Search, CarFront, ArrowRight, X } from "lucide-vue-next";
 import api, { errorMessage, validationErrors } from "../../api/client";
@@ -11,6 +11,10 @@ import StatusBadge from "../../components/StatusBadge.vue";
 import PaginationControls from "../../components/PaginationControls.vue";
 import { useAuthStore } from "../../stores/auth";
 const auth = useAuthStore();
+const subscription = computed(() => auth.user?.business?.subscription);
+const vehicleLimitReached = computed(
+  () => subscription.value?.vehicle_limit_reached ?? false,
+);
 const vehicles = ref<Vehicle[]>([]),
   meta = ref<PaginationMeta>(),
   loading = ref(true),
@@ -119,7 +123,7 @@ async function save() {
       acquisition_cost: "",
       notes: "",
     });
-    load();
+    await Promise.all([load(), auth.fetchMe()]);
   } catch (e) {
     error.value = errorMessage(e);
     errors.value = validationErrors(e);
@@ -133,10 +137,20 @@ async function save() {
     <PageHeader
       title="Vehicles"
       description="Manage every vehicle, its status, mileage, and history."
-      ><button v-if="auth.can('vehicles.create')" class="btn btn-primary" @click="modal = true">
-        <Plus :size="17" />Add vehicle
+      ><button v-if="auth.can('vehicles.create')" class="btn btn-primary" :disabled="vehicleLimitReached" @click="modal = true">
+        <Plus :size="17" />{{ vehicleLimitReached ? "Vehicle limit reached" : "Add vehicle" }}
       </button></PageHeader
     >
+    <div
+      v-if="subscription && subscription.usage_percent >= 80"
+      class="alert"
+      :class="vehicleLimitReached ? 'error' : 'warning'"
+    >
+      <strong>{{ subscription.label }} plan:</strong>
+      {{ subscription.vehicle_count }} of {{ subscription.vehicle_limit }} vehicle slots used.
+      <span v-if="vehicleLimitReached">Upgrade the subscription to add another vehicle.</span>
+      <span v-else>{{ subscription.vehicles_remaining }} slots remaining.</span>
+    </div>
     <div class="toolbar">
       <div class="search-input">
         <Search /><input
@@ -157,7 +171,7 @@ async function save() {
       v-else-if="!vehicles.length"
       title="No vehicles found"
       message="Add a vehicle or adjust your search filters."
-      ><button v-if="auth.can('vehicles.create')" class="btn btn-primary" @click="modal = true">
+      ><button v-if="auth.can('vehicles.create')" class="btn btn-primary" :disabled="vehicleLimitReached" @click="modal = true">
         Add vehicle
       </button></EmptyState
     >

@@ -12,12 +12,16 @@ import OperationsView from "../views/OperationsView.vue";
 import AuditLogsView from "../views/AuditLogsView.vue";
 import StaffView from "../views/StaffView.vue";
 import SuperAdminView from "../views/SuperAdminView.vue";
+import PlanEndedView from "../views/auth/PlanEndedView.vue";
+import SupportChatView from "../views/SupportChatView.vue";
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: "/login", component: LoginView, meta: { guest: true } },
     { path: "/register", component: RegisterView, meta: { guest: true } },
+    { path: "/plan-ended", component: PlanEndedView, meta: { planEnded: true } },
+    { path: "/support", component: SupportChatView, meta: { ownerSupport: true } },
     {
       path: "/superadmin",
       component: SuperAdminView,
@@ -87,9 +91,12 @@ const router = createRouter({
 });
 router.beforeEach((to) => {
   const logged = !!localStorage.getItem("vehiclehub_token");
+  if (to.meta.planEnded) return;
   if (!logged && !to.meta.guest) return "/login";
   if (logged && to.meta.guest) return "/";
   const user = JSON.parse(localStorage.getItem("vehiclehub_user") || "null");
+  if (to.meta.ownerSupport && user?.role !== "owner")
+    return user?.business?.subscription?.plan_ended ? "/plan-ended" : "/";
   if (user?.role === "super_admin" && !to.meta.superadmin && !to.meta.guest)
     return "/superadmin";
   if (to.meta.superadmin && user?.role !== "super_admin") return "/";

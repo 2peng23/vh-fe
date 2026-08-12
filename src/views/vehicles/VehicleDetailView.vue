@@ -7,7 +7,7 @@ import {
   ref,
   watch,
 } from "vue";
-import { useRoute, RouterLink } from "vue-router";
+import { useRoute, useRouter, RouterLink } from "vue-router";
 import {
   ArrowLeft,
   CarFront,
@@ -31,6 +31,7 @@ import PaginationControls from "../../components/PaginationControls.vue";
 import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.vue";
 import { formatDate } from "../../utils/date";
 const route = useRoute(),
+  router = useRouter(),
   auth = useAuthStore(),
   vehicle = ref<Vehicle>(),
   loading = ref(true),
@@ -42,9 +43,11 @@ const route = useRoute(),
   rowsLoading = ref(false),
   modal = ref(false),
   editModal = ref(false),
+  vehicleDeleteOpen = ref(false),
   error = ref(""),
   saving = ref(false),
   editSaving = ref(false),
+  deletingVehicle = ref(false),
   editErrors = ref<Record<string, string[]>>({});
 const editingRow = ref<any | null>(null);
 const deletingId = ref<number | null>(null);
@@ -194,6 +197,20 @@ async function saveEdit() {
     editErrors.value = validationErrors(e);
   } finally {
     editSaving.value = false;
+  }
+}
+async function deleteVehicle() {
+  if (!vehicle.value) return;
+  deletingVehicle.value = true;
+  error.value = "";
+  try {
+    await api.delete(`/vehicles/${vehicle.value.id}`);
+    vehicleDeleteOpen.value = false;
+    await router.push("/vehicles");
+  } catch (e) {
+    error.value = errorMessage(e);
+  } finally {
+    deletingVehicle.value = false;
   }
 }
 function selectEditCodePrefix() {
@@ -485,7 +502,22 @@ function pretty(v: any) {
             {{ vehicle.year || "Year not set" }}
           </p>
         </div>
-        <button v-if="auth.can('vehicles.update')" class="btn" @click="openEdit">Edit vehicle</button>
+        <div class="vehicle-hero-actions">
+          <button
+            v-if="auth.can('vehicles.update')"
+            class="btn"
+            @click="openEdit"
+          >
+            <Pencil :size="16" />Edit vehicle
+          </button>
+          <button
+            v-if="auth.can('vehicles.delete')"
+            class="btn btn-danger-outline"
+            @click="vehicleDeleteOpen = true"
+          >
+            <Trash2 :size="16" />Delete vehicle
+          </button>
+        </div>
       </header>
       <nav class="tabs">
         <button
@@ -1097,6 +1129,14 @@ function pretty(v: any) {
           </div>
         </section>
       </div>
+      <ConfirmDeleteModal
+        :open="vehicleDeleteOpen"
+        :loading="deletingVehicle"
+        title="Delete vehicle?"
+        :message="`${vehicle.brand} ${vehicle.model} (${vehicle.plate_number}) will be removed from the active fleet.`"
+        @cancel="vehicleDeleteOpen = false"
+        @confirm="deleteVehicle"
+      />
       <ConfirmDeleteModal
         :open="!!pendingDelete"
         :loading="deletingId !== null"

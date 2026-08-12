@@ -15,6 +15,11 @@ export const useAuthStore = defineStore("auth", {
     canManage: (s) => s.user?.role === "owner",
     isSuperAdmin: (s) => s.user?.role === "super_admin",
     isOwner: (s) => s.user?.role === "owner",
+    planEnded: (s) => s.user?.business?.subscription?.plan_ended === true,
+    businessInactive: (s) => s.user?.business?.status === "inactive",
+    accessRestricted(): boolean {
+      return this.planEnded || this.businessInactive;
+    },
     isImpersonating: (s) => s.impersonating,
     can: (s) => (permission: string) =>
       s.user?.role === "super_admin" ||
@@ -52,8 +57,18 @@ export const useAuthStore = defineStore("auth", {
       localStorage.setItem("vehiclehub_user", JSON.stringify(session.user));
       this.user = session.user;
     },
+    /** Synchronize reactive authentication state after an interceptor changes access. */
+    syncCachedUser() {
+      this.user = JSON.parse(localStorage.getItem("vehiclehub_user") || "null") as User | null;
+    },
     async fetchMe() {
       const { data } = await api.get<ApiEnvelope<User>>("/me");
+      this.user = data.data;
+      localStorage.setItem("vehiclehub_user", JSON.stringify(this.user));
+    },
+    /** Refresh access state through the endpoint available to restricted accounts. */
+    async fetchAccessStatus() {
+      const { data } = await api.get<ApiEnvelope<User>>("/access-status");
       this.user = data.data;
       localStorage.setItem("vehiclehub_user", JSON.stringify(this.user));
     },

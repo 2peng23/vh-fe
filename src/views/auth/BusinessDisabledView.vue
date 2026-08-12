@@ -1,28 +1,27 @@
 <script setup lang="ts">
-import { LifeBuoy } from "lucide-vue-next";
 import { onBeforeUnmount, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
 import AppLogo from "../../components/AppLogo.vue";
+import SupportChatView from "../SupportChatView.vue";
 import { useAuthStore } from "../../stores/auth";
+import { useRouter } from "vue-router";
 
 const auth = useAuthStore();
 const router = useRouter();
+const supportOpen = ref(false);
 const checkingAccess = ref(false);
 let accessTimer: number | undefined;
 
-/** Refresh server-side access state and leave this page after plan activation. */
+/** Refresh server-side access state and leave this page after reactivation. */
 async function refreshAccessStatus() {
   if (checkingAccess.value || auth.isImpersonating) return;
   checkingAccess.value = true;
   try {
     await auth.fetchAccessStatus();
-    if (auth.businessInactive) {
-      await router.replace("/business-disabled");
-    } else if (!auth.planEnded) {
+    if (!auth.businessInactive) {
       await router.replace("/");
     }
   } catch {
-    // The API client handles expired sessions; expired plans remain on this page.
+    // The API client handles expired sessions; inactive accounts remain on this page.
   } finally {
     checkingAccess.value = false;
   }
@@ -44,7 +43,7 @@ onBeforeUnmount(() => {
   window.removeEventListener("focus", handleWindowFocus);
 });
 
-/** Restore the saved administrator session after inspecting an expired tenant account. */
+/** Restore the saved administrator session after inspecting a disabled tenant account. */
 async function returnToSuperAdmin() {
   await auth.stopImpersonating();
   await router.replace("/superadmin");
@@ -55,19 +54,14 @@ async function returnToSuperAdmin() {
   <main class="plan-ended-page">
     <section class="plan-ended-card">
       <AppLogo />
-      <div class="plan-ended-icon"><LifeBuoy /></div>
-      <span class="eyebrow">ACCOUNT ACCESS PAUSED</span>
-      <h1>Your plan has ended</h1>
-      <p v-if="auth.isOwner">
-        Access for the owner and all staff accounts is currently disabled.
-        Purchase a plan to renew or reactivate your account.
-      </p>
-      <p v-else>
-        Your business plan has ended and access is currently disabled.
-        Please notify your business owner. Only the owner can contact Vehicle Hub support and manage the renewal.
-      </p>
-      <button v-if="auth.isOwner" class="btn btn-primary btn-block" type="button" @click="router.push('/plan-transactions?purchase=1')">Purchase plan</button>
+      <div class="disabled-account-mark">Account disabled</div>
+      <span class="eyebrow">BUSINESS ACCESS DISABLED</span>
+      <h1>This business account is inactive</h1>
+      <p v-if="auth.isOwner">Your business was disabled by the platform administrator. Your plan information and business data remain stored, but access is paused. Contact Vehicle Hub support for assistance.</p>
+      <p v-else>This business was disabled by the platform administrator. Owner and staff access is currently paused. Please notify your business owner.</p>
+      <button v-if="auth.isOwner" class="btn btn-primary btn-block" type="button" @click="supportOpen = true">Contact support</button>
       <button v-if="auth.isImpersonating" class="btn btn-block" type="button" @click="returnToSuperAdmin">Return to Super Admin</button>
     </section>
+    <div v-if="supportOpen" class="modal-backdrop support-modal-backdrop" @click.self="supportOpen = false"><SupportChatView embedded @close="supportOpen = false" /></div>
   </main>
 </template>

@@ -9,9 +9,12 @@ import {
   Pencil,
   Plus,
   MessageCircle,
-  Send,
-  Paperclip,
-  Download,
+  CreditCard,
+  Copy,
+  LayoutDashboard,
+  Menu,
+  QrCode,
+  Trash2,
   Search,
   ShieldCheck,
   Users,
@@ -27,11 +30,16 @@ import EmptyState from "../components/EmptyState.vue";
 import PaginationControls from "../components/PaginationControls.vue";
 import StatusBadge from "../components/StatusBadge.vue";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal.vue";
+import AdminSupportPanel from "../components/support/AdminSupportPanel.vue";
+import BusinessTable from "../components/admin/BusinessTable.vue";
 import { formatDate } from "../utils/date";
+import type { SupportConversation, SupportMessage, SupportTemplate } from "../types/support";
+
+type AdminTab = "dashboard" | "businesses" | "users" | "permissions" | "support" | "transactions" | "payment-methods" | "plans";
 
 const auth = useAuthStore(),
   router = useRouter(),
-  tab = ref<"businesses" | "users" | "permissions" | "support">("businesses"),
+  tab = ref<AdminTab>("dashboard"),
   stats = ref<any>({}),
   rows = ref<any[]>([]),
   meta = ref<PaginationMeta>(),
@@ -58,18 +66,76 @@ const auth = useAuthStore(),
   bulkSaving = ref(false),
   impersonatingUserId = ref<number | null>(null),
   expandedOwners = ref<Set<number>>(new Set());
-const supportConversations = ref<any[]>([]);
-const selectedSupportBusiness = ref<any | null>(null);
-const supportMessages = ref<any[]>([]);
+const adminSidebarOpen = ref(false);
+const adminNavigation: Array<{ id: AdminTab; label: string; icon: any }> = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "businesses", label: "Businesses", icon: Building2 },
+  { id: "users", label: "All users", icon: Users },
+  { id: "permissions", label: "Permissions", icon: ShieldCheck },
+  { id: "transactions", label: "Transactions", icon: CreditCard },
+  { id: "plans", label: "Plans", icon: ShieldCheck },
+  { id: "payment-methods", label: "Payment methods", icon: QrCode },
+  { id: "support", label: "Support", icon: MessageCircle },
+];
+const adminPage = computed(() => ({
+  dashboard: { title: "Dashboard", description: "Monitor businesses, plans, users, and vehicles across the platform." },
+  businesses: { title: "Businesses", description: "Manage tenant businesses, plans, limits, and account access." },
+  users: { title: "Users", description: "Review and manage owners and staff across every business." },
+  permissions: { title: "Permissions", description: "Configure access for individual tenant users." },
+  transactions: { title: "Transactions", description: "Track plan purchases and payment processing." },
+  plans: { title: "Plans", description: "Configure plan prices, billing periods, limits, and details." },
+  "payment-methods": { title: "Payment methods", description: "Manage the accounts available for plan payments." },
+  support: { title: "Support", description: "Read and respond to business support conversations." },
+})[tab.value]);
+const transactionModalOpen = ref(false);
+const transactionBusinesses = ref<any[]>([]);
+const transactionErrors = ref<Record<string, string[]>>({});
+const transactionForm = reactive({
+  business_id: "",
+  plan: "starter",
+  amount: "",
+  payment_method_id: "",
+  paid_at: todayInManila(),
+  starts_at: todayInManila(),
+  ends_at: "",
+  notes: "",
+});
+const transactionPaymentMethods = ref<any[]>([]);
+const transactionFilters = reactive({
+  plan: "",
+  payment_status: "",
+  status: "",
+  payment_method: "",
+  date_from: "",
+  date_to: "",
+});
+const transactionFiltersActive = computed(() => Boolean(
+  search.value.trim() || Object.values(transactionFilters).some((value) => value),
+));
+const updatingTransactionId = ref<number | null>(null);
+const copiedTransactionId = ref<number | null>(null);
+const transactionCurrency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
+const paymentMethodModalOpen = ref(false);
+const planOfferingModalOpen = ref(false), editingPlanOffering = ref<any | null>(null), planOfferingErrors = ref<Record<string, string[]>>({});
+const planOfferingForm = reactive({ plan: "starter", name: "Starter", duration_months: 1, price: "", vehicle_limit: 5, details: "", is_active: true });
+const editingPaymentMethod = ref<any | null>(null);
+const deletingPaymentMethod = ref<any | null>(null);
+const paymentMethodQr = ref<File | null>(null);
+const paymentMethodErrors = ref<Record<string, string[]>>({});
+const paymentMethodForm = reactive({ name: "", account_name: "", account_number: "", remove_qr: false });
+const qrPreview = ref<{ name: string; url: string } | null>(null);
+const supportConversations = ref<SupportConversation[]>([]);
+const selectedSupportBusiness = ref<SupportConversation | null>(null);
+const supportMessages = ref<SupportMessage[]>([]);
 const supportReply = ref("");
-const supportTemplates = ref<any[]>([]);
+const supportTemplates = ref<SupportTemplate[]>([]);
 const templateModalOpen = ref(false);
+const editingTemplate = ref<SupportTemplate | null>(null);
 const templateSaving = ref(false);
 const templateErrors = ref<Record<string, string[]>>({});
 const templateForm = reactive({ title: "", message: "" });
 const supportAttachment = ref<File | null>(null);
-const supportAttachmentInput = ref<HTMLInputElement>();
-const supportThread = ref<HTMLElement>();
+const supportPanel = ref<InstanceType<typeof AdminSupportPanel>>();
 const supportHasMore = ref(false);
 const supportLoadingOlder = ref(false);
 const supportUnreadTotal = computed(() => supportConversations.value.reduce(
@@ -77,9 +143,7 @@ const supportUnreadTotal = computed(() => supportConversations.value.reduce(
 ));
 async function scrollSupportToBottom() {
   await nextTick();
-  window.requestAnimationFrame(() => {
-    if (supportThread.value) supportThread.value.scrollTop = supportThread.value.scrollHeight;
-  });
+  await supportPanel.value?.scrollToBottom();
 }
 const form = reactive<Record<string, any>>({});
 const ownerForm = reactive({
@@ -94,7 +158,9 @@ const ownerForm = reactive({
   vehicle_limit_override: "",
   plan_ends_at: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
 });
-const todayInManila = () => new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+function todayInManila() {
+  return new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
 function statusFromPlanEnd(value: string) {
   return value && value < todayInManila() ? "past_due" : "active";
 }
@@ -112,6 +178,11 @@ async function load() {
   loading.value = true;
   error.value = "";
   try {
+    if (tab.value === "dashboard") {
+      rows.value = [];
+      meta.value = undefined;
+      return;
+    }
     if (tab.value === "support") {
       await loadSupportConversations();
       rows.value = [];
@@ -130,11 +201,28 @@ async function load() {
       meta.value = undefined;
       return;
     }
+    if (tab.value === "payment-methods") {
+      const { data } = await api.get<ApiEnvelope<any[]>>("/superadmin/payment-methods");
+      rows.value = data.data;
+      meta.value = undefined;
+      return;
+    }
+    if (tab.value === "plans") {
+      const { data } = await api.get<ApiEnvelope<any[]>>("/superadmin/plan-offerings");
+      rows.value = data.data;
+      meta.value = undefined;
+      return;
+    }
+    if (tab.value === "transactions" && !transactionPaymentMethods.value.length) {
+      const { data: methods } = await api.get<ApiEnvelope<any[]>>("/superadmin/payment-methods");
+      transactionPaymentMethods.value = methods.data;
+    }
     const { data } = await api.get<ApiEnvelope<any[]>>(
       `/superadmin/${tab.value}`,
       {
         params: {
           search: search.value,
+          ...(tab.value === "transactions" ? transactionFilters : {}),
           page: page.value,
           per_page: perPage.value,
         },
@@ -153,28 +241,188 @@ async function load() {
     loading.value = false;
   }
 }
-function selectTab(value: "businesses" | "users" | "permissions" | "support") {
+
+/** Apply transaction filters from the first page so pagination remains consistent. */
+function applyTransactionFilters() {
+  page.value = 1;
+  load();
+}
+
+/** Clear every transaction filter and restore the complete transaction history. */
+function clearTransactionFilters() {
+  search.value = "";
+  Object.assign(transactionFilters, {
+    plan: "",
+    payment_status: "",
+    status: "",
+    payment_method: "",
+    date_from: "",
+    date_to: "",
+  });
+  applyTransactionFilters();
+}
+function selectTab(value: AdminTab) {
   if (value === "support" && tab.value !== "support") {
     selectedSupportBusiness.value = null;
     supportMessages.value = [];
     supportReply.value = "";
   }
   tab.value = value;
+  adminSidebarOpen.value = false;
   page.value = 1;
   load();
+}
+
+/** Open a blank or populated configurable plan offering form. */
+function openPlanOffering(offering: any | null = null) {
+  editingPlanOffering.value = offering;
+  planOfferingErrors.value = {};
+  Object.assign(planOfferingForm, offering || { plan: "starter", name: "Starter", duration_months: 1, price: "", vehicle_limit: 5, details: "", is_active: true });
+  planOfferingModalOpen.value = true;
+}
+
+/** Save a plan offering used by owner self-service purchases. */
+async function savePlanOffering() {
+  saving.value = true;
+  try {
+    if (editingPlanOffering.value) await api.put(`/superadmin/plan-offerings/${editingPlanOffering.value.id}`, planOfferingForm);
+    else await api.post("/superadmin/plan-offerings", planOfferingForm);
+    planOfferingModalOpen.value = false;
+    await load();
+  } catch (e) { error.value = errorMessage(e); planOfferingErrors.value = validationErrors(e); } finally { saving.value = false; }
+}
+
+/** Open a blank payment method form. */
+function addPaymentMethod() {
+  editingPaymentMethod.value = null;
+  paymentMethodErrors.value = {};
+  paymentMethodQr.value = null;
+  Object.assign(paymentMethodForm, { name: "", account_name: "", account_number: "", remove_qr: false });
+  paymentMethodModalOpen.value = true;
+}
+
+/** Open an existing payment method for editing. */
+function editPaymentMethod(method: any) {
+  editingPaymentMethod.value = method;
+  paymentMethodErrors.value = {};
+  paymentMethodQr.value = null;
+  Object.assign(paymentMethodForm, { name: method.name, account_name: method.account_name, account_number: method.account_number, remove_qr: false });
+  paymentMethodModalOpen.value = true;
+}
+
+/** Retain the optional QR image selected in the payment method form. */
+function choosePaymentQr(event: Event) {
+  paymentMethodQr.value = (event.target as HTMLInputElement).files?.[0] || null;
+}
+
+/** Create or update a payment method using multipart form data. */
+async function savePaymentMethod() {
+  saving.value = true;
+  paymentMethodErrors.value = {};
+  error.value = "";
+  try {
+    const payload = new FormData();
+    payload.append("name", paymentMethodForm.name);
+    payload.append("account_name", paymentMethodForm.account_name);
+    payload.append("account_number", paymentMethodForm.account_number);
+    if (paymentMethodQr.value) payload.append("qr", paymentMethodQr.value);
+    if (paymentMethodForm.remove_qr) payload.append("remove_qr", "1");
+    if (editingPaymentMethod.value) payload.append("_method", "PUT");
+    const path = editingPaymentMethod.value ? `/superadmin/payment-methods/${editingPaymentMethod.value.id}` : "/superadmin/payment-methods";
+    await api.post(path, payload);
+    paymentMethodModalOpen.value = false;
+    await load();
+  } catch (e) {
+    error.value = errorMessage(e);
+    paymentMethodErrors.value = validationErrors(e);
+  } finally {
+    saving.value = false;
+  }
+}
+
+/** Delete the selected payment method after confirmation. */
+async function deletePaymentMethod() {
+  if (!deletingPaymentMethod.value) return;
+  saving.value = true;
+  try {
+    await api.delete(`/superadmin/payment-methods/${deletingPaymentMethod.value.id}`);
+    deletingPaymentMethod.value = null;
+    await load();
+  } catch (e) {
+    error.value = errorMessage(e);
+  } finally {
+    saving.value = false;
+  }
+}
+
+/** Load an authenticated QR image and display it in the in-page preview modal. */
+async function viewPaymentQr(method: any) {
+  const response = await api.get(`/superadmin/payment-methods/${method.id}/qr`, { responseType: "blob" });
+  closeQrPreview();
+  qrPreview.value = { name: method.name, url: URL.createObjectURL(response.data) };
+}
+
+/** Close the QR preview and release its temporary browser URL. */
+function closeQrPreview() {
+  if (qrPreview.value?.url) URL.revokeObjectURL(qrPreview.value.url);
+  qrPreview.value = null;
+}
+
+/** Persist a transaction status and refresh business totals after completion. */
+async function updateTransactionStatus(transaction: any, status: string) {
+  updatingTransactionId.value = transaction.id;
+  error.value = "";
+  try {
+    await api.put(`/superadmin/transactions/${transaction.id}/status`, { status });
+    await Promise.all([load(), loadStats()]);
+  } catch (e) {
+    error.value = errorMessage(e);
+  } finally {
+    updatingTransactionId.value = null;
+  }
+}
+
+/** Copy the authenticated owner URL for opening a specific transaction. */
+async function copyTransactionLink(transaction: any) {
+  const url = `${window.location.origin}/plan-transactions?transaction=${transaction.id}`;
+  await navigator.clipboard.writeText(url);
+  copiedTransactionId.value = transaction.id;
+  window.setTimeout(() => {
+    if (copiedTransactionId.value === transaction.id) copiedTransactionId.value = null;
+  }, 2000);
+}
+
+/** Create a ledger entry and apply its purchased plan period to the business. */
+async function createTransaction() {
+  saving.value = true;
+  transactionErrors.value = {};
+  error.value = "";
+  try {
+    await api.post("/superadmin/transactions", transactionForm);
+    transactionModalOpen.value = false;
+    await Promise.all([load(), loadStats()]);
+  } catch (e) {
+    error.value = errorMessage(e);
+    transactionErrors.value = validationErrors(e);
+  } finally {
+    saving.value = false;
+  }
 }
 async function loadSupportConversations() {
   const { data } = await api.get<ApiEnvelope<any[]>>("/superadmin/support/conversations");
   supportConversations.value = data.data;
-  if (selectedSupportBusiness.value) {
-    const refreshed = data.data.find((item: any) => supportConversationKey(item) === supportConversationKey(selectedSupportBusiness.value));
+  const selected = selectedSupportBusiness.value;
+  if (selected) {
+    const refreshed = data.data.find((item: SupportConversation) => supportConversationKey(item) === supportConversationKey(selected));
     if (refreshed) selectedSupportBusiness.value = refreshed;
   }
 }
-function supportConversationKey(item: any) {
+/** Build a collision-safe identifier for business and guest conversations. */
+function supportConversationKey(item: SupportConversation): string {
   return `${item.conversation_type || "business"}-${item.id}`;
 }
-function supportConversationPath(item: any) {
+/** Resolve the API thread endpoint for either conversation type. */
+function supportConversationPath(item: SupportConversation): string {
   return `/superadmin/support/${item.conversation_type === "guest" ? "guests" : "businesses"}/${item.id}`;
 }
 async function loadSupportTemplates() {
@@ -185,10 +433,15 @@ async function createSupportTemplate() {
   templateSaving.value = true;
   templateErrors.value = {};
   try {
-    const { data } = await api.post("/superadmin/support/templates", templateForm);
-    supportTemplates.value.push(data.data);
+    const { data } = editingTemplate.value
+      ? await api.put(`/superadmin/support/templates/${editingTemplate.value.id}`, templateForm)
+      : await api.post("/superadmin/support/templates", templateForm);
+    const existingIndex = supportTemplates.value.findIndex((template) => template.id === data.data.id);
+    if (existingIndex >= 0) supportTemplates.value.splice(existingIndex, 1, data.data);
+    else supportTemplates.value.push(data.data);
     supportTemplates.value.sort((a, b) => a.title.localeCompare(b.title));
     templateModalOpen.value = false;
+    editingTemplate.value = null;
     templateForm.title = "";
     templateForm.message = "";
   } catch (e) {
@@ -198,6 +451,22 @@ async function createSupportTemplate() {
     templateSaving.value = false;
   }
 }
+/** Open the reusable template editor with existing values. */
+function editSupportTemplate(template: SupportTemplate) {
+  editingTemplate.value = template;
+  templateErrors.value = {};
+  templateForm.title = template.title;
+  templateForm.message = template.message;
+  templateModalOpen.value = true;
+}
+/** Reset the template form before creating a reusable reply. */
+function addSupportTemplate() {
+  editingTemplate.value = null;
+  templateErrors.value = {};
+  templateForm.title = "";
+  templateForm.message = "";
+  templateModalOpen.value = true;
+}
 async function selectSupportBusiness(business: any) {
   selectedSupportBusiness.value = business;
   const { data } = await api.get<ApiEnvelope<any[]>>(supportConversationPath(business));
@@ -206,8 +475,25 @@ async function selectSupportBusiness(business: any) {
   business.unread_support_count = 0;
   await scrollSupportToBottom();
 }
+async function openBusinessSupport(business: any) {
+  error.value = "";
+  tab.value = "support";
+  rows.value = [];
+  meta.value = undefined;
+  await loadSupportConversations();
+  const conversation = supportConversations.value.find(
+    (item: any) => item.conversation_type !== "guest" && item.id === business.id,
+  ) || { ...business, conversation_type: "business", unread_support_count: 0 };
+  await selectSupportBusiness(conversation);
+}
 async function viewSupportBusiness(business: any) {
   if (business.conversation_type === "guest") return;
+  await viewBusiness(business);
+}
+
+/** Open the Businesses tab and narrow the table to the selected business. */
+async function viewBusiness(business: any) {
+  if (!business?.name) return;
   search.value = business.name;
   page.value = 1;
   selectedSupportBusiness.value = null;
@@ -218,7 +504,7 @@ async function viewSupportBusiness(business: any) {
 async function loadOlderSupportMessages() {
   if (supportLoadingOlder.value || !supportHasMore.value || !supportMessages.value.length || !selectedSupportBusiness.value) return;
   supportLoadingOlder.value = true;
-  const element = supportThread.value;
+  const element = supportPanel.value?.threadElement();
   const previousHeight = element?.scrollHeight || 0;
   try {
     const { data } = await api.get<ApiEnvelope<any[]>>(supportConversationPath(selectedSupportBusiness.value), {
@@ -231,9 +517,6 @@ async function loadOlderSupportMessages() {
   } finally {
     supportLoadingOlder.value = false;
   }
-}
-function handleSupportThreadScroll() {
-  if ((supportThread.value?.scrollTop || 0) <= 20) loadOlderSupportMessages();
 }
 let supportRefreshTimer: number;
 let supportRefreshing = false;
@@ -269,7 +552,6 @@ async function sendSupportReply() {
     supportMessages.value.push(data.data);
     supportReply.value = "";
     supportAttachment.value = null;
-    if (supportAttachmentInput.value) supportAttachmentInput.value.value = "";
     await scrollSupportToBottom();
     await loadSupportConversations();
   } catch (e) {
@@ -284,12 +566,6 @@ function chooseSupportAttachment(event: Event) {
 function applySupportTemplate(message: string) {
   supportReply.value = message.replace("{{dashboard_url}}", `${window.location.origin}/`);
 }
-function supportTemplatePreview(message: string) {
-  return message.replace("{{dashboard_url}}", `${window.location.origin}/`);
-}
-function messageParts(value: string) {
-  return String(value || "").split(/(https?:\/\/[^\s]+)/g).filter(Boolean).map((text) => ({ text, url: /^https?:\/\//.test(text) }));
-}
 async function downloadSupportAttachment(item: any) {
   const response = await api.get(`/support/attachments/${item.id}`, { responseType: "blob" });
   const url = URL.createObjectURL(response.data);
@@ -298,9 +574,6 @@ async function downloadSupportAttachment(item: any) {
   link.download = item.attachment_name;
   link.click();
   URL.revokeObjectURL(url);
-}
-function supportFileSize(bytes: number) {
-  return bytes < 1048576 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / 1048576).toFixed(1)} MB`;
 }
 function selectPermissionUser(user: any) {
   selectedPermissionUserId.value = user.id;
@@ -411,6 +684,7 @@ function edit(row: any) {
       email: row.email,
       subscription_plan: row.subscription_plan,
       subscription_status: row.subscription_status,
+      status: row.status || "active",
       plan_ends_at: row.plan_ends_at?.slice(0, 10) || "",
       vehicle_limit_override: row.vehicle_limit_override ?? "",
     });
@@ -497,30 +771,61 @@ watch(perPage, () => {
 onBeforeUnmount(() => {
   clearTimeout(permissionUserSearchTimer);
   clearInterval(supportRefreshTimer);
+  closeQrPreview();
 });
 </script>
 <template>
   <div class="superadmin-shell">
-    <header class="superadmin-topbar">
-      <AppLogo />
-      <div>
-        <span><ShieldCheck />Platform administration</span
-        ><strong>{{ auth.user?.name }}</strong
-        ><button class="btn" @click="logout"><LogOut />Sign out</button>
+    <aside class="superadmin-sidebar" :class="{ open: adminSidebarOpen }">
+      <div class="superadmin-sidebar-brand">
+        <AppLogo />
+        <button class="icon-btn superadmin-sidebar-close" aria-label="Close navigation" @click="adminSidebarOpen = false"><X /></button>
       </div>
-    </header>
-    <main class="superadmin-content">
+      <nav class="superadmin-navigation" aria-label="Super administrator navigation">
+        <small>Platform</small>
+        <button
+          v-for="item in adminNavigation"
+          :key="item.id"
+          type="button"
+          :class="{ active: tab === item.id }"
+          @click="selectTab(item.id)"
+        >
+          <component :is="item.icon" />
+          <span>{{ item.label }}</span>
+          <em v-if="item.id === 'support' && supportUnreadTotal" class="superadmin-nav-count">{{ supportUnreadTotal > 99 ? '99+' : supportUnreadTotal }}</em>
+        </button>
+      </nav>
+      <div class="superadmin-sidebar-account">
+        <span><ShieldCheck /> Platform administration</span>
+        <strong>{{ auth.user?.name }}</strong>
+        <button type="button" @click="logout"><LogOut /> Sign out</button>
+      </div>
+    </aside>
+    <button v-if="adminSidebarOpen" class="superadmin-sidebar-overlay" aria-label="Close navigation" @click="adminSidebarOpen = false"></button>
+    <section class="superadmin-workspace">
+      <header class="superadmin-topbar">
+        <button class="icon-btn superadmin-menu-button" aria-label="Open navigation" @click="adminSidebarOpen = true"><Menu /></button>
+        <div>
+          <small>Vehicle Hub Control Center</small>
+          <strong>{{ adminPage.title }}</strong>
+        </div>
+        <div class="superadmin-topbar-account">
+          <span>{{ auth.user?.name }}</span>
+          <button class="btn" @click="logout"><LogOut />Sign out</button>
+        </div>
+      </header>
+      <main class="superadmin-content">
       <div class="superadmin-heading">
         <div>
-          <span class="eyebrow">VEHICLE HUB CONTROL CENTER</span>
-          <h1>Super Admin Dashboard</h1>
-          <p>Manage businesses, subscriptions, and every tenant user.</p>
+          <span class="eyebrow">PLATFORM ADMINISTRATION</span>
+          <h1>{{ adminPage.title }}</h1>
+          <p>{{ adminPage.description }}</p>
         </div>
-        <button class="btn btn-primary" @click="openCreateOwner">
-          <Plus /> Add owner
+        <button v-if="tab === 'businesses'" class="btn btn-primary" @click="openCreateOwner">
+          <Plus /> Add business
         </button>
       </div>
-      <div class="superadmin-stats">
+      <div v-if="tab === 'dashboard'" class="superadmin-stats">
         <article>
           <Building2 /><small>Businesses</small
           ><strong>{{ stats.businesses || 0 }}</strong>
@@ -541,26 +846,28 @@ onBeforeUnmount(() => {
           ><strong>{{ stats.vehicles || 0 }}</strong>
         </article>
       </div>
-      <div class="superadmin-panel card">
-        <div class="superadmin-toolbar">
-          <div class="tabs">
-            <button
-              :class="{ active: tab === 'businesses' }"
-              @click="selectTab('businesses')"
-            >
-              Businesses</button
-            ><button
-              :class="{ active: tab === 'users' }"
-              @click="selectTab('users')"
-            >
-              All users
-            </button><button
-              :class="{ active: tab === 'permissions' }"
-              @click="selectTab('permissions')"
-            >Permissions</button>
-            <button :class="{ active: tab === 'support', unread: supportUnreadTotal > 0 }" @click="selectTab('support')"><MessageCircle />Support<em v-if="supportUnreadTotal" class="support-tab-count">{{ supportUnreadTotal > 99 ? '99+' : supportUnreadTotal }}</em></button>
+      <div v-if="tab === 'dashboard'" class="superadmin-dashboard-grid">
+        <section class="card superadmin-quick-actions">
+          <div><span class="eyebrow">QUICK ACCESS</span><h2>Manage the platform</h2><p>Open a workspace to review and update platform records.</p></div>
+          <div class="superadmin-quick-links">
+            <button v-for="item in adminNavigation.filter((item) => item.id !== 'dashboard')" :key="item.id" type="button" @click="selectTab(item.id)">
+              <span><component :is="item.icon" /><strong>{{ item.label }}</strong></span><ChevronRight />
+            </button>
           </div>
-          <div v-if="tab !== 'permissions' && tab !== 'support'" class="superadmin-search">
+        </section>
+        <section class="card superadmin-plan-summary">
+          <span class="eyebrow">ACCOUNT SUMMARY</span>
+          <h2>Business plans</h2>
+          <div><span>Active businesses</span><strong>{{ stats.active_businesses || 0 }}</strong></div>
+          <div><span>Trial plans</span><strong>{{ stats.trial_businesses || 0 }}</strong></div>
+          <div><span>Total businesses</span><strong>{{ stats.businesses || 0 }}</strong></div>
+          <button class="btn" type="button" @click="selectTab('businesses')">View all businesses</button>
+        </section>
+      </div>
+      <div v-else class="superadmin-panel card">
+        <div class="superadmin-toolbar">
+          <div><strong>{{ adminPage.title }}</strong><small>{{ meta?.total ?? rows.length }} records</small></div>
+          <div v-if="tab !== 'permissions' && tab !== 'support' && tab !== 'payment-methods' && tab !== 'transactions'" class="superadmin-search">
             <input
               v-model="search"
               :placeholder="`Search ${tab}`"
@@ -578,41 +885,83 @@ onBeforeUnmount(() => {
               Search
             </button>
           </div>
+          <button v-if="tab === 'payment-methods'" class="btn btn-primary" @click="addPaymentMethod"><Plus />Add payment method</button>
+          <button v-if="tab === 'plans'" class="btn btn-primary" @click="openPlanOffering()"><Plus />Add plan</button>
         </div>
+        <form v-if="tab === 'transactions'" class="transaction-filters" @submit.prevent="applyTransactionFilters">
+          <label class="transaction-filter-search">
+            Search
+            <div><Search /><input v-model="search" placeholder="Business, email, reference or plan" /></div>
+          </label>
+          <label>
+            Plan
+            <select v-model="transactionFilters.plan">
+              <option value="">All plans</option>
+              <option value="trial">Trial</option>
+              <option value="starter">Starter</option>
+              <option value="business">Business</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+          </label>
+          <label>
+            Payment
+            <select v-model="transactionFilters.payment_status">
+              <option value="">All payment statuses</option>
+              <option value="paid">Paid</option>
+              <option value="not_paid">Not paid</option>
+            </select>
+          </label>
+          <label>
+            Transaction
+            <select v-model="transactionFilters.status">
+              <option value="">All transaction statuses</option>
+              <option value="processing">Processing</option>
+              <option value="completed">Completed</option>
+              <option value="failed">Failed</option>
+            </select>
+          </label>
+          <label>
+            Payment method
+            <select v-model="transactionFilters.payment_method">
+              <option value="">All methods</option>
+              <option v-for="method in transactionPaymentMethods" :key="method.id" :value="method.name">{{ method.name }}</option>
+            </select>
+          </label>
+          <label>
+            From
+            <input v-model="transactionFilters.date_from" type="date" :max="transactionFilters.date_to || undefined" />
+          </label>
+          <label>
+            To
+            <input v-model="transactionFilters.date_to" type="date" :min="transactionFilters.date_from || undefined" />
+          </label>
+          <button class="btn btn-primary" type="submit"><Search /> Apply filters</button>
+          <button class="btn" type="button" :disabled="!transactionFiltersActive" @click="clearTransactionFilters"><X /> Clear</button>
+        </form>
         <div v-if="error" class="alert error">{{ error }}</div>
         <LoadingState v-if="loading" />
-        <div v-else-if="tab === 'support'" class="support-admin">
-          <aside class="support-conversations">
-            <div class="support-section-title"><strong>Support messages</strong><small>{{ supportConversations.length }} conversations</small></div>
-            <button v-for="business in supportConversations" :key="supportConversationKey(business)" :class="{ active: selectedSupportBusiness && supportConversationKey(selectedSupportBusiness) === supportConversationKey(business), unread: business.unread_support_count > 0 }" @click="selectSupportBusiness(business)">
-              <span><span class="conversation-title"><strong>{{ business.name }}</strong><em v-if="business.conversation_type === 'guest'" class="guest-label">Guest</em><em v-if="business.unread_support_count" class="conversation-unread-count">{{ business.unread_support_count > 99 ? '99+' : business.unread_support_count }}</em></span><small>{{ business.email }}</small></span>
-            </button>
-            <p v-if="!supportConversations.length" class="support-empty">No support messages yet.</p>
-          </aside>
-          <section class="support-admin-thread">
-            <template v-if="selectedSupportBusiness">
-              <header><div><button type="button" class="support-business-link" :class="{ disabled: selectedSupportBusiness.conversation_type === 'guest' }" :title="selectedSupportBusiness.conversation_type === 'guest' ? 'Guest conversation' : 'View business'" @click="viewSupportBusiness(selectedSupportBusiness)">{{ selectedSupportBusiness.name }}</button><small>{{ selectedSupportBusiness.email }}</small></div><StatusBadge v-if="selectedSupportBusiness.subscription_status" :status="selectedSupportBusiness.subscription_status" /><span v-else class="guest-label">Guest</span></header>
-              <div ref="supportThread" class="support-thread" @scroll="handleSupportThreadScroll">
-                <p v-if="supportLoadingOlder" class="support-history-loading">Loading earlier messages…</p>
-                <article v-for="item in supportMessages" :key="item.id" :class="['support-bubble', item.sender_type === 'super_admin' ? 'mine' : 'theirs']">
-                  <p v-if="item.message"><template v-for="(part, index) in messageParts(item.message)" :key="index"><a v-if="part.url" :href="part.text" target="_blank" rel="noopener">{{ part.text }}</a><span v-else>{{ part.text }}</span></template></p>
-                  <button v-if="item.attachment_name" type="button" class="support-attachment" @click="downloadSupportAttachment(item)"><Paperclip /><span><strong>{{ item.attachment_name }}</strong><small>{{ supportFileSize(item.attachment_size) }}</small></span><Download /></button>
-                  <small>{{ formatDate(item.created_at) }}</small>
-                </article>
-              </div>
-              <form class="support-composer" @submit.prevent="sendSupportReply"><div class="support-compose-main"><textarea v-model="supportReply" maxlength="5000" placeholder="Reply to this business…"></textarea><span v-if="supportAttachment" class="selected-attachment"><Paperclip />{{ supportAttachment.name }}<button type="button" @click="supportAttachment = null"><X /></button></span></div><label class="icon-btn attachment-picker" title="Attach file"><Paperclip /><input ref="supportAttachmentInput" type="file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt" @change="chooseSupportAttachment" /></label><button class="btn btn-primary" :disabled="saving || (!supportReply.trim() && !supportAttachment)"><Send />Reply</button></form>
-            </template>
-            <div v-else class="support-empty"><MessageCircle /><strong>Select a conversation</strong></div>
-          </section>
-          <aside class="support-templates-panel">
-            <div class="support-section-title template-panel-head"><span><strong>Message templates</strong><small>Click to use a quick reply</small></span><button type="button" class="icon-btn" title="Add message template" @click="templateModalOpen = true"><Plus /></button></div>
-            <div class="support-template-list">
-              <button v-for="template in supportTemplates" :key="template.id" type="button" :disabled="!selectedSupportBusiness" @click="applySupportTemplate(template.message)">
-                <strong>{{ template.title }}</strong><span>{{ supportTemplatePreview(template.message) }}</span>
-              </button>
-            </div>
-          </aside>
-        </div>
+        <AdminSupportPanel
+          v-else-if="tab === 'support'"
+          ref="supportPanel"
+          v-model:reply="supportReply"
+          :conversations="supportConversations"
+          :selected="selectedSupportBusiness"
+          :messages="supportMessages"
+          :templates="supportTemplates"
+          :attachment="supportAttachment"
+          :saving="saving"
+          :loading-older="supportLoadingOlder"
+          @select="selectSupportBusiness"
+          @view-business="viewSupportBusiness"
+          @load-older="loadOlderSupportMessages"
+          @send="sendSupportReply"
+          @download="downloadSupportAttachment"
+          @choose-attachment="chooseSupportAttachment"
+          @clear-attachment="supportAttachment = null"
+          @use-template="applySupportTemplate"
+          @add-template="addSupportTemplate"
+          @edit-template="editSupportTemplate"
+        />
         <div v-else-if="tab === 'permissions'" class="permission-editor">
           <div class="toolbar permission-toolbar">
             <div class="permission-user-field">
@@ -678,46 +1027,34 @@ onBeforeUnmount(() => {
               </td>
             </tr></tbody></table></div>
           <p class="permission-note">Changes apply only to the selected user. Other owners and staff keep their own permission settings. Super Admin always retains full access.</p>
+        </div>
+        <div v-else-if="tab === 'plans' && rows.length" class="table-wrap">
+          <table><thead><tr><th>Plan</th><th>Period</th><th>Price</th><th>Vehicle limit</th><th>Details</th><th>Status</th><th>Action</th></tr></thead><tbody><tr v-for="offering in rows" :key="offering.id"><td><strong>{{ offering.name }}</strong><small class="cell-small capitalize">{{ offering.plan }}</small></td><td>{{ offering.duration_months === 12 ? '1 year' : `${offering.duration_months} month${offering.duration_months > 1 ? 's' : ''}` }}</td><td>{{ transactionCurrency.format(Number(offering.price)) }}</td><td>{{ offering.vehicle_limit }}</td><td>{{ offering.details || '—' }}</td><td><StatusBadge :status="offering.is_active ? 'Active' : 'Inactive'" /></td><td><button class="icon-btn" title="Edit plan" @click="openPlanOffering(offering)"><Pencil /></button></td></tr></tbody></table>
         </div><EmptyState
           v-else-if="!rows.length"
           :title="`No ${tab} found`"
         />
         <div v-else class="table-wrap">
-          <table v-if="tab === 'businesses'">
-            <thead>
-              <tr>
-                <th>Business</th>
-                <th>Owner</th>
-                <th>Users</th>
-                <th>Vehicles</th>
-                <th>Plan</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in rows" :key="row.id">
-                <td>
-                  <strong>{{ row.name }}</strong
-                  ><small class="cell-small">{{ row.email }}</small>
-                </td>
-                <td>
-                  {{ row.users?.[0]?.name || "—"
-                  }}<small class="cell-small">{{
-                    row.users?.[0]?.email
-                  }}</small>
-                </td>
-                <td>{{ row.users_count }}</td>
-                <td>{{ row.vehicles_count }} / {{ row.subscription?.vehicle_limit }}</td>
-                <td class="capitalize">{{ row.subscription?.label || row.subscription_plan }}</td>
-                <td><StatusBadge :status="row.subscription_status" /></td>
-                <td>
-                  <button class="icon-btn" @click="edit(row)">
-                    <Pencil />
-                  </button>
-                </td>
-              </tr>
-            </tbody>
+          <BusinessTable v-if="tab === 'businesses'" :businesses="rows" @edit="edit" @support="openBusinessSupport" @view="viewBusiness" />
+          <table v-else-if="tab === 'payment-methods'">
+            <thead><tr><th>Payment method</th><th>Account name</th><th>Account number</th><th>QR</th><th>Created</th><th>Action</th></tr></thead>
+            <tbody><tr v-for="method in rows" :key="method.id"><td><strong>{{ method.name }}</strong></td><td>{{ method.account_name }}</td><td>{{ method.account_number }}</td><td><button v-if="method.qr_path" type="button" class="btn btn-small" @click="viewPaymentQr(method)"><QrCode />View QR</button><span v-else>—</span></td><td>{{ formatDate(method.created_at) }}</td><td><span class="row-actions"><button type="button" class="icon-btn" title="Edit payment method" @click="editPaymentMethod(method)"><Pencil /></button><button type="button" class="icon-btn" title="Delete payment method" @click="deletingPaymentMethod = method"><Trash2 /></button></span></td></tr></tbody>
+          </table>
+          <table v-else-if="tab === 'transactions'">
+            <thead><tr><th>Business</th><th>Plan</th><th>Amount</th><th>Payment method</th><th>Reference</th><th>Payment status</th><th>Payment date</th><th>Plan period</th><th>Transaction status</th><th>Recorded by</th><th>Action</th></tr></thead>
+            <tbody><tr v-for="transaction in rows" :key="transaction.id">
+              <td><button type="button" class="business-name-link" @click="viewBusiness(transaction.business)">{{ transaction.business?.name }}</button><small class="cell-small">{{ transaction.business?.email }}</small></td>
+              <td class="capitalize">{{ transaction.plan }}</td>
+              <td><strong>{{ transactionCurrency.format(Number(transaction.amount)) }}</strong></td>
+              <td><strong>{{ transaction.selected_payment_method?.name || transaction.payment_method }}</strong><small v-if="transaction.selected_payment_method?.account_name" class="cell-small">{{ transaction.selected_payment_method.account_name }}</small><small v-if="transaction.selected_payment_method?.account_number" class="cell-small">{{ transaction.selected_payment_method.account_number }}</small></td>
+              <td>{{ transaction.reference || '—' }}</td>
+              <td><StatusBadge :status="transaction.payment_status === 'paid' ? 'Paid' : 'Not paid'" /></td>
+              <td>{{ formatDate(transaction.paid_at) }}</td>
+              <td>{{ formatDate(transaction.starts_at) }} – {{ formatDate(transaction.ends_at) }}</td>
+              <td><select class="transaction-status-select" :value="transaction.status" :disabled="updatingTransactionId === transaction.id" @change="updateTransactionStatus(transaction, ($event.target as HTMLSelectElement).value)"><option value="processing">Processing</option><option value="completed">Completed</option><option value="failed">Failed</option></select></td>
+              <td>{{ transaction.creator?.name || '—' }}</td>
+              <td><button type="button" class="btn btn-small" @click="copyTransactionLink(transaction)"><Copy />{{ copiedTransactionId === transaction.id ? 'Copied' : 'Copy link' }}</button></td>
+            </tr></tbody>
           </table>
           <table v-else-if="tab === 'users'">
             <thead>
@@ -752,7 +1089,7 @@ onBeforeUnmount(() => {
                       </span>
                     </span>
                   </td>
-                  <td>{{ owner.business?.name || "—" }}</td>
+                  <td><button v-if="owner.business" type="button" class="business-name-link" @click="viewBusiness(owner.business)">{{ owner.business.name }}</button><span v-else>—</span></td>
                   <td class="capitalize">{{ owner.role.replaceAll("_", " ") }}</td>
                   <td><StatusBadge :status="owner.status" /></td>
                   <td>{{ formatDate(owner.created_at) }}</td>
@@ -776,7 +1113,7 @@ onBeforeUnmount(() => {
                       </span>
                     </span>
                   </td>
-                  <td>{{ owner.business?.name || "—" }}</td>
+                  <td><button v-if="owner.business" type="button" class="business-name-link" @click="viewBusiness(owner.business)">{{ owner.business.name }}</button><span v-else>—</span></td>
                   <td class="capitalize">{{ staff.role.replaceAll("_", " ") }}</td>
                   <td><StatusBadge :status="staff.status" /></td>
                   <td>{{ formatDate(staff.created_at) }}</td>
@@ -798,7 +1135,8 @@ onBeforeUnmount(() => {
           v-model:per-page="perPage"
         />
       </div>
-    </main>
+      </main>
+    </section>
     <ConfirmDeleteModal
       :open="bulkConfirmOpen"
       :loading="bulkSaving"
@@ -808,11 +1146,51 @@ onBeforeUnmount(() => {
       @cancel="bulkConfirmOpen = false"
       @confirm="applyPermissionsToAll"
     />
+    <div v-if="planOfferingModalOpen" class="modal-backdrop" @click.self="planOfferingModalOpen = false"><section class="modal"><div class="modal-head"><div><h2>{{ editingPlanOffering ? 'Edit plan' : 'Add plan' }}</h2><p>Configure the price and details shown to owners.</p></div><button class="icon-btn" @click="planOfferingModalOpen = false"><X /></button></div><div class="modal-form grid"><label>Plan<select v-model="planOfferingForm.plan"><option value="starter">Starter</option><option value="business">Business</option><option value="enterprise">Enterprise</option></select></label><label>Display name<input v-model="planOfferingForm.name" required /></label><label>Billing period<select v-model.number="planOfferingForm.duration_months"><option :value="1">1 month</option><option :value="6">6 months</option><option :value="12">1 year</option></select></label><label>Price<input v-model="planOfferingForm.price" type="number" min="0" step="0.01" required /></label><label>Vehicle limit<input v-model.number="planOfferingForm.vehicle_limit" type="number" min="1" required /></label><label>Status<select v-model="planOfferingForm.is_active"><option :value="true">Active</option><option :value="false">Inactive</option></select></label><label class="full">Details<textarea v-model="planOfferingForm.details" rows="4"></textarea></label></div><div class="modal-actions"><button class="btn" @click="planOfferingModalOpen = false">Cancel</button><button class="btn btn-primary" :disabled="saving" @click="savePlanOffering">{{ saving ? 'Saving…' : 'Save plan' }}</button></div></section></div>
+    <ConfirmDeleteModal :open="!!deletingPaymentMethod" :loading="saving" title="Delete payment method?" :message="`This will permanently remove ${deletingPaymentMethod?.name || 'this payment method'} and its QR image.`" @cancel="deletingPaymentMethod = null" @confirm="deletePaymentMethod" />
+    <div v-if="qrPreview" class="modal-backdrop" @click.self="closeQrPreview">
+      <section class="modal payment-qr-modal" role="dialog" aria-modal="true" :aria-label="`${qrPreview.name} QR code`">
+        <div class="modal-head"><div><h2>{{ qrPreview.name }}</h2><p>Scan this QR code to make a payment.</p></div><button type="button" class="icon-btn" aria-label="Close QR preview" @click="closeQrPreview"><X /></button></div>
+        <div class="payment-qr-preview"><img :src="qrPreview.url" :alt="`${qrPreview.name} payment QR code`" /></div>
+      </section>
+    </div>
+    <div v-if="paymentMethodModalOpen" class="modal-backdrop" @click.self="paymentMethodModalOpen = false">
+      <form class="modal" @submit.prevent="savePaymentMethod">
+        <div class="modal-head"><div><h2>{{ editingPaymentMethod ? 'Edit' : 'Add' }} payment method</h2><p>Configure payment instructions for plan purchases.</p></div><button type="button" class="icon-btn" @click="paymentMethodModalOpen = false"><X /></button></div>
+        <div v-if="error" class="alert error">{{ error }}</div>
+        <div class="field-grid">
+          <label>Payment method<select v-model="paymentMethodForm.name" required><option disabled value="">Select a payment method</option><option>Maya</option><option>GCash</option><option>BDO</option><option>Chinabank</option><option>UnionBank</option></select><small v-if="paymentMethodErrors.name">{{ paymentMethodErrors.name[0] }}</small></label>
+          <label>Account name<input v-model="paymentMethodForm.account_name" required maxlength="150" /><small v-if="paymentMethodErrors.account_name">{{ paymentMethodErrors.account_name[0] }}</small></label>
+          <label>Account number<input v-model="paymentMethodForm.account_number" required maxlength="150" /><small v-if="paymentMethodErrors.account_number">{{ paymentMethodErrors.account_number[0] }}</small></label>
+          <label class="full">QR image (optional)<input type="file" accept="image/jpeg,image/png,image/webp" @change="choosePaymentQr" /><small>JPG, PNG, or WebP up to 5 MB.</small><small v-if="paymentMethodErrors.qr">{{ paymentMethodErrors.qr[0] }}</small></label>
+          <label v-if="editingPaymentMethod?.qr_path && !paymentMethodQr" class="full checkbox-label"><input v-model="paymentMethodForm.remove_qr" type="checkbox" />Remove current QR image</label>
+        </div>
+        <div class="modal-actions"><button type="button" class="btn" @click="paymentMethodModalOpen = false">Cancel</button><button class="btn btn-primary" :disabled="saving">{{ saving ? 'Saving…' : 'Save payment method' }}</button></div>
+      </form>
+    </div>
+    <div v-if="transactionModalOpen" class="modal-backdrop" @click.self="transactionModalOpen = false">
+      <form class="modal" @submit.prevent="createTransaction">
+        <div class="modal-head"><div><h2>New plan transaction</h2><p>Record a plan purchase and activate its billing period.</p></div><button type="button" class="icon-btn" @click="transactionModalOpen = false"><X /></button></div>
+        <div v-if="error" class="alert error">{{ error }}</div>
+        <div class="field-grid">
+          <label>Business<select v-model="transactionForm.business_id" required><option disabled value="">Select a business</option><option v-for="business in transactionBusinesses" :key="business.id" :value="business.id">{{ business.name }}</option></select><small v-if="transactionErrors.business_id">{{ transactionErrors.business_id[0] }}</small></label>
+          <label>Plan<select v-model="transactionForm.plan" required><option value="trial">Trial</option><option value="starter">Starter</option><option value="business">Business</option><option value="enterprise">Enterprise</option></select></label>
+          <label>Amount<input v-model="transactionForm.amount" type="number" min="0" step="0.01" required placeholder="0.00" /><small v-if="transactionErrors.amount">{{ transactionErrors.amount[0] }}</small></label>
+          <label>Payment method<select v-model="transactionForm.payment_method_id" required><option disabled value="">Select a payment method</option><option v-for="method in transactionPaymentMethods" :key="method.id" :value="method.id">{{ method.name }} — {{ method.account_name }} — {{ method.account_number }}</option></select><small v-if="!transactionPaymentMethods.length">Add a payment method before creating a transaction.</small><small v-if="transactionErrors.payment_method_id">{{ transactionErrors.payment_method_id[0] }}</small></label>
+          <label>Reference<input value="Automatically generated after creation" disabled /><small>Format: BUSINESS-NAME-YYYYMMDD-UNIQUECODE</small></label>
+          <label>Payment date<input v-model="transactionForm.paid_at" type="date" required /></label>
+          <label>Plan starts<input v-model="transactionForm.starts_at" type="date" required /></label>
+          <label>Plan ends<input v-model="transactionForm.ends_at" type="date" required /><small v-if="transactionErrors.ends_at">{{ transactionErrors.ends_at[0] }}</small></label>
+          <label class="full">Notes<textarea v-model="transactionForm.notes" rows="3" maxlength="2000"></textarea></label>
+        </div>
+        <div class="modal-actions"><button type="button" class="btn" @click="transactionModalOpen = false">Cancel</button><button class="btn btn-primary" :disabled="saving || !transactionPaymentMethods.length">{{ saving ? 'Creating…' : 'Create transaction' }}</button></div>
+      </form>
+    </div>
     <div v-if="templateModalOpen" class="modal-backdrop" @click.self="templateModalOpen = false">
       <form class="modal template-modal" @submit.prevent="createSupportTemplate">
-        <div class="modal-head"><div><h2>Add message template</h2><p>Create a reusable Super Admin support reply.</p></div><button type="button" class="icon-btn" @click="templateModalOpen = false"><X /></button></div>
+        <div class="modal-head"><div><h2>{{ editingTemplate ? 'Edit' : 'Add' }} message template</h2><p>{{ editingTemplate ? 'Update this reusable support reply.' : 'Create a reusable Super Admin support reply.' }}</p></div><button type="button" class="icon-btn" @click="templateModalOpen = false"><X /></button></div>
         <div class="field-grid"><label class="full">Template name<input v-model="templateForm.title" maxlength="100" required /><small v-if="templateErrors.title">{{ templateErrors.title[0] }}</small></label><label class="full">Message<textarea v-model="templateForm.message" maxlength="5000" rows="6" required></textarea><small v-if="templateErrors.message">{{ templateErrors.message[0] }}</small><small>Use <code v-pre>{{dashboard_url}}</code> to insert the dashboard link.</small></label></div>
-        <div class="modal-actions"><button type="button" class="btn" @click="templateModalOpen = false">Cancel</button><button class="btn btn-primary" :disabled="templateSaving">{{ templateSaving ? 'Creating…' : 'Create template' }}</button></div>
+        <div class="modal-actions"><button type="button" class="btn" @click="templateModalOpen = false">Cancel</button><button class="btn btn-primary" :disabled="templateSaving">{{ templateSaving ? 'Saving...' : editingTemplate ? 'Save changes' : 'Create template' }}</button></div>
       </form>
     </div>
     <div v-if="creatingOwner" class="modal-backdrop" @click.self="creatingOwner = false">
@@ -865,7 +1243,8 @@ onBeforeUnmount(() => {
               <option>business</option>
               <option>enterprise</option>
             </select></label
-          ><label>Status<input :value="statusFromPlanEnd(form.plan_ends_at).replace('_', ' ')" disabled /><small>Automatically based on the plan end date.</small></label
+          ><label>Business access<select v-model="form.status"><option value="active">Active</option><option value="inactive">Inactive / Disabled</option></select><small>Inactive blocks the owner and all staff accounts.</small></label
+          ><label>Plan status<input :value="statusFromPlanEnd(form.plan_ends_at).replace('_', ' ')" disabled /><small>Automatically based on the plan end date.</small></label
           ><label>Custom vehicle limit<input v-model.number="form.vehicle_limit_override" type="number" min="1" max="100000" placeholder="Use plan default" /><small>Leave blank to use the selected plan limit.</small></label
           ><label
             >Plan ends<input v-model="form.plan_ends_at" type="date"

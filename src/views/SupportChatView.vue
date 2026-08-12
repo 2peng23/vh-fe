@@ -4,7 +4,7 @@ import { Download, LifeBuoy, Paperclip, Send, X } from "lucide-vue-next";
 import AppLogo from "../components/AppLogo.vue";
 import api, { errorMessage } from "../api/client";
 import { useAuthStore } from "../stores/auth";
-import { formatDate } from "../utils/date";
+import { formatDateTime } from "../utils/date";
 
 const auth = useAuthStore();
 const props = defineProps<{ embedded?: boolean; guest?: boolean }>();
@@ -30,6 +30,7 @@ const hasConversation = computed(() => !props.guest || !!guestToken.value);
 const supportPath = computed(() => props.guest ? "/guest-support/messages" : "/support/messages");
 const guestHeaders = () => props.guest ? { "X-Support-Token": guestToken.value } : {};
 
+/** Create a guest thread and retain its private browser token. */
 async function startGuestConversation() {
   sending.value = true;
   error.value = "";
@@ -47,12 +48,14 @@ async function startGuestConversation() {
   }
 }
 
+/** Move the chat viewport to the latest message. */
 async function scrollToBottom() {
   await nextTick();
   window.requestAnimationFrame(() => {
     if (thread.value) thread.value.scrollTop = thread.value.scrollHeight;
   });
 }
+/** Poll the latest page and merge messages without creating duplicates. */
 async function load() {
   if (!hasConversation.value) { loading.value = false; return; }
   if (refreshing) return;
@@ -79,6 +82,7 @@ async function load() {
     refreshing = false;
   }
 }
+/** Prepend the previous cursor page while preserving scroll position. */
 async function loadOlder() {
   if (loadingOlder.value || !hasMore.value || !messages.value.length) return;
   loadingOlder.value = true;
@@ -96,9 +100,11 @@ async function loadOlder() {
     loadingOlder.value = false;
   }
 }
+/** Request history when the user reaches the top of the chat container. */
 function handleThreadScroll() {
   if ((thread.value?.scrollTop || 0) <= 20) loadOlder();
 }
+/** Submit text or an attachment to the active support thread. */
 async function send() {
   const text = message.value.trim();
   if (!text && !attachment.value) return;
@@ -120,9 +126,11 @@ async function send() {
     sending.value = false;
   }
 }
+/** Retain the selected attachment until the message is sent. */
 function chooseAttachment(event: Event) {
   attachment.value = (event.target as HTMLInputElement).files?.[0] || null;
 }
+/** Download an attachment through its authorized API endpoint. */
 async function downloadAttachment(item: any) {
   const path = props.guest ? `/guest-support/attachments/${item.id}` : `/support/attachments/${item.id}`;
   const response = await api.get(path, { responseType: "blob", headers: guestHeaders() });
@@ -133,9 +141,11 @@ async function downloadAttachment(item: any) {
   link.click();
   URL.revokeObjectURL(url);
 }
+/** Format attachment bytes for compact display. */
 function fileSize(bytes: number) {
   return bytes < 1048576 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / 1048576).toFixed(1)} MB`;
 }
+/** Split links from text without rendering untrusted HTML. */
 function messageParts(value: string) {
   return String(value || "").split(/(https?:\/\/[^\s]+)/g).filter(Boolean).map((text) => ({ text, url: /^https?:\/\//.test(text) }));
 }
@@ -168,7 +178,7 @@ onBeforeUnmount(() => clearInterval(refreshTimer));
         <article v-for="item in messages" :key="item.id" :class="['support-bubble', ['tenant', 'guest'].includes(item.sender_type) ? 'mine' : 'theirs']">
           <p v-if="item.message"><template v-for="(part, index) in messageParts(item.message)" :key="index"><a v-if="part.url" :href="part.text" target="_blank" rel="noopener">{{ part.text }}</a><span v-else>{{ part.text }}</span></template></p>
           <button v-if="item.attachment_name" type="button" class="support-attachment" @click="downloadAttachment(item)"><Paperclip /><span><strong>{{ item.attachment_name }}</strong><small>{{ fileSize(item.attachment_size) }}</small></span><Download /></button>
-          <small>{{ formatDate(item.created_at) }}</small>
+          <small>{{ formatDateTime(item.created_at) }}<template v-if="['tenant', 'guest'].includes(item.sender_type)"> · {{ item.read_at ? 'Read' : 'Sent' }}</template></small>
         </article>
       </div>
       <div v-if="error" class="alert error">{{ error }}</div>

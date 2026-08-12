@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from "vue";
-import { RouterLink } from "vue-router";
+import { RouterLink, useRouter } from "vue-router";
 import {
   CarFront,
   Wrench,
   TriangleAlert,
   FileClock,
   ArrowUpRight,
-  Plus,
   TrendingUp,
+  LifeBuoy,
 } from "lucide-vue-next";
 import api, { errorMessage } from "../api/client";
 import type { ApiEnvelope, Vehicle } from "../types";
@@ -16,6 +16,8 @@ import PageHeader from "../components/PageHeader.vue";
 import LoadingState from "../components/LoadingState.vue";
 import StatusBadge from "../components/StatusBadge.vue";
 import { useAuthStore } from "../stores/auth";
+import AppLogo from "../components/AppLogo.vue";
+import SupportChatView from "./SupportChatView.vue";
 type Dashboard = {
   vehicles: { total: number; active: number; maintenance: number };
   issues: { open: number; critical: number };
@@ -31,7 +33,9 @@ const data = ref<Dashboard | null>(null),
   vehicles = ref<Vehicle[]>([]),
   loading = ref(true),
   error = ref(""),
+  supportOpen = ref(false),
   auth = useAuthStore();
+const router = useRouter();
 const currency = new Intl.NumberFormat("en-PH", {
   style: "currency",
   currency: "PHP",
@@ -42,6 +46,7 @@ const maxExpense = computed(() =>
 );
 onMounted(async () => {
   try {
+    if (auth.accessRestricted) return;
     await auth.fetchMe();
     const d = await api.get<ApiEnvelope<Dashboard>>("/dashboard");
     data.value = d.data.data;
@@ -58,13 +63,29 @@ onMounted(async () => {
 </script>
 <template>
   <div>
+    <div v-if="auth.planEnded" class="dashboard-plan-ended">
+      <section class="plan-ended-content">
+        <AppLogo />
+        <div class="plan-ended-icon"><LifeBuoy /></div>
+        <span class="eyebrow">ACCOUNT ACCESS PAUSED</span>
+        <h1>Your plan has ended</h1>
+        <p v-if="auth.isOwner">Access for the owner and all staff accounts is currently disabled. Purchase a plan to reactivate your account.</p>
+        <p v-else>Your business plan has ended and access is currently disabled. Please notify your business owner. Only the owner can contact Vehicle Hub support and manage the renewal.</p>
+        <button v-if="auth.isOwner" class="btn btn-primary btn-block" type="button" @click="router.push('/plan-transactions?purchase=1')">Purchase plan</button>
+      </section>
+      <div v-if="supportOpen" class="modal-backdrop support-modal-backdrop" @click.self="supportOpen = false"><SupportChatView embedded @close="supportOpen = false" /></div>
+    </div>
+    <section v-else-if="auth.businessInactive" class="restricted-dashboard-card">
+      <span class="eyebrow">BUSINESS ACCESS DISABLED</span>
+      <h1>This business account is inactive</h1>
+      <p v-if="auth.isOwner">Your business was disabled by the platform administrator. Use Support in the sidebar to request assistance.</p>
+      <p v-else>Owner and staff access is currently paused. Please notify your business owner.</p>
+    </section>
+    <template v-else>
     <PageHeader
       :title="`Good ${new Date().getHours() < 12 ? 'morning' : 'afternoon'}, ${auth.user?.name?.split(' ')[0] || ''}`"
       description="Here’s what needs your attention across the vehicle."
-      ><RouterLink v-if="auth.can('vehicles.create')" class="btn btn-primary" to="/vehicles"
-        ><Plus :size="17" /> Add vehicle</RouterLink
-      ></PageHeader
-    >
+    />
     <div class="alert error" v-if="error">{{ error }}</div>
     <LoadingState v-if="loading" /><template v-else-if="data"
       ><div class="metric-grid">
@@ -198,5 +219,6 @@ onMounted(async () => {
         </section>
       </div></template
     >
+    </template>
   </div>
 </template>

@@ -6,6 +6,7 @@ export interface Business {
   timezone: string;
   subscription_plan: string;
   subscription_status: string;
+  status: "active" | "inactive";
   vehicle_limit_override: number | null;
   plan_ends_at: string | null;
   subscription: {

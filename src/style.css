@@ -61,10 +61,13 @@ h3,
   color: #c6d0dc;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
   z-index: 30;
 }
 .sidebar-top {
   height: 74px;
+  flex: 0 0 74px;
   display: flex;
   align-items: center;
   padding: 0 24px;
@@ -214,7 +217,10 @@ h3,
   line-height: 1.7;
 }
 .sidebar-foot {
+  flex: 0 0 auto;
   padding: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--navy);
 }
 .trial {
   padding: 15px;
@@ -1146,6 +1152,52 @@ td a {
   text-transform: capitalize;
   cursor: pointer;
 }
+.transaction-nowrap {
+  white-space: nowrap;
+}
+.transaction-information-modal {
+  width: min(760px, 100%);
+}
+.transaction-information-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px 32px;
+  padding: 24px;
+}
+.transaction-information-grid > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+}
+.transaction-information-grid span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.transaction-information-grid strong,
+.transaction-information-grid p {
+  max-width: 100%;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.transaction-information-grid .status-badge {
+  width: fit-content;
+}
+.transaction-information-wide {
+  grid-column: 1 / -1;
+}
+@media (max-width: 620px) {
+  .transaction-information-grid {
+    grid-template-columns: 1fr;
+  }
+  .transaction-information-wide {
+    grid-column: auto;
+  }
+}
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -1165,6 +1217,13 @@ td a {
 }
 .small-modal {
   width: min(520px, 100%);
+}
+.plan-offering-modal {
+  width: min(760px, 100%);
+}
+.plan-offering-fields textarea {
+  min-height: 112px;
+  resize: vertical;
 }
 .modal-head {
   padding: 20px 22px;
@@ -1446,6 +1505,7 @@ label small {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  overflow: hidden;
   padding: 24px 18px;
   background: #07192b;
   color: #fff;
@@ -1454,6 +1514,7 @@ label small {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex: 0 0 auto;
   padding: 0 8px 25px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -1464,8 +1525,13 @@ label small {
 .superadmin-navigation {
   display: flex;
   flex-direction: column;
+  flex: 1;
   gap: 6px;
+  min-height: 0;
   padding-top: 27px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 .superadmin-navigation > small {
   margin: 0 12px 8px;
@@ -1514,6 +1580,7 @@ label small {
   text-align: center;
 }
 .superadmin-sidebar-account {
+  flex: 0 0 auto;
   margin-top: auto;
   padding: 16px;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -1779,6 +1846,28 @@ label small {
 .superadmin-plan-summary .btn {
   width: 100%;
   margin-top: 20px;
+}
+@media (max-width: 1200px) {
+  .superadmin-content {
+    width: calc(100% - 40px);
+    padding-top: 28px;
+  }
+  .superadmin-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .superadmin-dashboard-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .superadmin-quick-links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .superadmin-quick-links button,
+  .superadmin-quick-links button span {
+    min-width: 0;
+  }
+  .superadmin-quick-links button strong {
+    overflow-wrap: anywhere;
+  }
 }
 .plan-purchase-page {
   display: grid;

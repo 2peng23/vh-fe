@@ -88,6 +88,7 @@ const adminPage = computed(() => ({
   support: { title: "Support", description: "Read and respond to business support conversations." },
 })[tab.value]);
 const transactionModalOpen = ref(false);
+const selectedAdminTransaction = ref<any | null>(null);
 const transactionBusinesses = ref<any[]>([]);
 const transactionErrors = ref<Record<string, string[]>>({});
 const transactionForm = reactive({
@@ -374,12 +375,18 @@ async function updateTransactionStatus(transaction: any, status: string) {
   error.value = "";
   try {
     await api.put(`/superadmin/transactions/${transaction.id}/status`, { status });
+    transaction.status = status;
     await Promise.all([load(), loadStats()]);
   } catch (e) {
     error.value = errorMessage(e);
   } finally {
     updatingTransactionId.value = null;
   }
+}
+
+/** Open the complete transaction record from the compact transaction table. */
+function viewTransactionInformation(transaction: any) {
+  selectedAdminTransaction.value = transaction;
 }
 
 /** Copy the authenticated owner URL for opening a specific transaction. */
@@ -1041,19 +1048,13 @@ onBeforeUnmount(() => {
             <tbody><tr v-for="method in rows" :key="method.id"><td><strong>{{ method.name }}</strong></td><td>{{ method.account_name }}</td><td>{{ method.account_number }}</td><td><button v-if="method.qr_path" type="button" class="btn btn-small" @click="viewPaymentQr(method)"><QrCode />View QR</button><span v-else>—</span></td><td>{{ formatDate(method.created_at) }}</td><td><span class="row-actions"><button type="button" class="icon-btn" title="Edit payment method" @click="editPaymentMethod(method)"><Pencil /></button><button type="button" class="icon-btn" title="Delete payment method" @click="deletingPaymentMethod = method"><Trash2 /></button></span></td></tr></tbody>
           </table>
           <table v-else-if="tab === 'transactions'">
-            <thead><tr><th>Business</th><th>Plan</th><th>Amount</th><th>Payment method</th><th>Reference</th><th>Payment status</th><th>Payment date</th><th>Plan period</th><th>Transaction status</th><th>Recorded by</th><th>Action</th></tr></thead>
+            <thead><tr><th>Business</th><th>Plan</th><th class="transaction-nowrap">Reference</th><th>Payment status</th><th class="transaction-nowrap">Action</th></tr></thead>
             <tbody><tr v-for="transaction in rows" :key="transaction.id">
               <td><button type="button" class="business-name-link" @click="viewBusiness(transaction.business)">{{ transaction.business?.name }}</button><small class="cell-small">{{ transaction.business?.email }}</small></td>
               <td class="capitalize">{{ transaction.plan }}</td>
-              <td><strong>{{ transactionCurrency.format(Number(transaction.amount)) }}</strong></td>
-              <td><strong>{{ transaction.selected_payment_method?.name || transaction.payment_method }}</strong><small v-if="transaction.selected_payment_method?.account_name" class="cell-small">{{ transaction.selected_payment_method.account_name }}</small><small v-if="transaction.selected_payment_method?.account_number" class="cell-small">{{ transaction.selected_payment_method.account_number }}</small></td>
-              <td>{{ transaction.reference || '—' }}</td>
+              <td class="transaction-nowrap">{{ transaction.reference || '—' }}</td>
               <td><StatusBadge :status="transaction.payment_status === 'paid' ? 'Paid' : 'Not paid'" /></td>
-              <td>{{ formatDate(transaction.paid_at) }}</td>
-              <td>{{ formatDate(transaction.starts_at) }} – {{ formatDate(transaction.ends_at) }}</td>
-              <td><select class="transaction-status-select" :value="transaction.status" :disabled="updatingTransactionId === transaction.id" @change="updateTransactionStatus(transaction, ($event.target as HTMLSelectElement).value)"><option value="processing">Processing</option><option value="completed">Completed</option><option value="failed">Failed</option></select></td>
-              <td>{{ transaction.creator?.name || '—' }}</td>
-              <td><button type="button" class="btn btn-small" @click="copyTransactionLink(transaction)"><Copy />{{ copiedTransactionId === transaction.id ? 'Copied' : 'Copy link' }}</button></td>
+              <td class="transaction-nowrap"><button type="button" class="btn btn-small" @click="viewTransactionInformation(transaction)">View information</button></td>
             </tr></tbody>
           </table>
           <table v-else-if="tab === 'users'">
@@ -1146,8 +1147,90 @@ onBeforeUnmount(() => {
       @cancel="bulkConfirmOpen = false"
       @confirm="applyPermissionsToAll"
     />
-    <div v-if="planOfferingModalOpen" class="modal-backdrop" @click.self="planOfferingModalOpen = false"><section class="modal"><div class="modal-head"><div><h2>{{ editingPlanOffering ? 'Edit plan' : 'Add plan' }}</h2><p>Configure the price and details shown to owners.</p></div><button class="icon-btn" @click="planOfferingModalOpen = false"><X /></button></div><div class="modal-form grid"><label>Plan<select v-model="planOfferingForm.plan"><option value="starter">Starter</option><option value="business">Business</option><option value="enterprise">Enterprise</option></select></label><label>Display name<input v-model="planOfferingForm.name" required /></label><label>Billing period<select v-model.number="planOfferingForm.duration_months"><option :value="1">1 month</option><option :value="6">6 months</option><option :value="12">1 year</option></select></label><label>Price<input v-model="planOfferingForm.price" type="number" min="0" step="0.01" required /></label><label>Vehicle limit<input v-model.number="planOfferingForm.vehicle_limit" type="number" min="1" required /></label><label>Status<select v-model="planOfferingForm.is_active"><option :value="true">Active</option><option :value="false">Inactive</option></select></label><label class="full">Details<textarea v-model="planOfferingForm.details" rows="4"></textarea></label></div><div class="modal-actions"><button class="btn" @click="planOfferingModalOpen = false">Cancel</button><button class="btn btn-primary" :disabled="saving" @click="savePlanOffering">{{ saving ? 'Saving…' : 'Save plan' }}</button></div></section></div>
+    <div v-if="planOfferingModalOpen" class="modal-backdrop" @click.self="planOfferingModalOpen = false">
+      <form class="modal plan-offering-modal" @submit.prevent="savePlanOffering">
+        <div class="modal-head">
+          <div>
+            <h2>{{ editingPlanOffering ? "Edit plan" : "Add plan" }}</h2>
+            <p>Configure the price and details shown to owners.</p>
+          </div>
+          <button type="button" class="icon-btn" aria-label="Close plan editor" @click="planOfferingModalOpen = false"><X /></button>
+        </div>
+        <div class="field-grid plan-offering-fields">
+          <label>
+            Plan
+            <select v-model="planOfferingForm.plan" required>
+              <option value="starter">Starter</option>
+              <option value="business">Business</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+          </label>
+          <label>
+            Display name
+            <input v-model="planOfferingForm.name" required maxlength="100" />
+          </label>
+          <label>
+            Billing period
+            <select v-model.number="planOfferingForm.duration_months" required>
+              <option :value="1">1 month</option>
+              <option :value="6">6 months</option>
+              <option :value="12">1 year</option>
+            </select>
+          </label>
+          <label>
+            Price
+            <input v-model="planOfferingForm.price" type="number" min="0" step="0.01" required />
+          </label>
+          <label>
+            Vehicle limit
+            <input v-model.number="planOfferingForm.vehicle_limit" type="number" min="1" required />
+          </label>
+          <label>
+            Status
+            <select v-model="planOfferingForm.is_active">
+              <option :value="true">Active</option>
+              <option :value="false">Inactive</option>
+            </select>
+          </label>
+          <label class="full">
+            Details
+            <textarea v-model="planOfferingForm.details" rows="4" maxlength="1000" placeholder="Describe the benefits included with this plan."></textarea>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn" @click="planOfferingModalOpen = false">Cancel</button>
+          <button class="btn btn-primary" :disabled="saving">{{ saving ? "Saving…" : "Save plan" }}</button>
+        </div>
+      </form>
+    </div>
     <ConfirmDeleteModal :open="!!deletingPaymentMethod" :loading="saving" title="Delete payment method?" :message="`This will permanently remove ${deletingPaymentMethod?.name || 'this payment method'} and its QR image.`" @cancel="deletingPaymentMethod = null" @confirm="deletePaymentMethod" />
+    <div v-if="selectedAdminTransaction" class="modal-backdrop" @click.self="selectedAdminTransaction = null">
+      <section class="modal transaction-information-modal" role="dialog" aria-modal="true" aria-label="Transaction information">
+        <div class="modal-head">
+          <div><h2>Transaction information</h2><p>{{ selectedAdminTransaction.reference || 'No reference number' }}</p></div>
+          <button type="button" class="icon-btn" aria-label="Close transaction information" @click="selectedAdminTransaction = null"><X /></button>
+        </div>
+        <div class="transaction-information-grid">
+          <div><span>Business</span><button type="button" class="business-name-link" @click="viewBusiness(selectedAdminTransaction.business)">{{ selectedAdminTransaction.business?.name || '—' }}</button></div>
+          <div><span>Plan</span><strong class="capitalize">{{ selectedAdminTransaction.plan }}</strong></div>
+          <div><span>Amount</span><strong>{{ transactionCurrency.format(Number(selectedAdminTransaction.amount)) }}</strong></div>
+          <div><span>Payment status</span><StatusBadge :status="selectedAdminTransaction.payment_status === 'paid' ? 'Paid' : 'Not paid'" /></div>
+          <div><span>Payment method</span><strong>{{ selectedAdminTransaction.selected_payment_method?.name || selectedAdminTransaction.payment_method || '—' }}</strong></div>
+          <div><span>Account name</span><strong>{{ selectedAdminTransaction.selected_payment_method?.account_name || '—' }}</strong></div>
+          <div><span>Account number</span><strong>{{ selectedAdminTransaction.selected_payment_method?.account_number || '—' }}</strong></div>
+          <div><span>Payment date</span><strong>{{ formatDate(selectedAdminTransaction.paid_at) }}</strong></div>
+          <div><span>Plan period</span><strong>{{ formatDate(selectedAdminTransaction.starts_at) }} – {{ formatDate(selectedAdminTransaction.ends_at) }}</strong></div>
+          <div><span>Recorded by</span><strong>{{ selectedAdminTransaction.creator?.name || '—' }}</strong></div>
+          <div class="transaction-information-wide"><span>Reference</span><strong>{{ selectedAdminTransaction.reference || '—' }}</strong></div>
+          <div class="transaction-information-wide"><span>Transaction status</span><select class="transaction-status-select" :value="selectedAdminTransaction.status" :disabled="updatingTransactionId === selectedAdminTransaction.id" @change="updateTransactionStatus(selectedAdminTransaction, ($event.target as HTMLSelectElement).value)"><option value="processing">Processing</option><option value="completed">Completed</option><option value="failed">Failed</option></select></div>
+          <div v-if="selectedAdminTransaction.notes" class="transaction-information-wide"><span>Notes</span><p>{{ selectedAdminTransaction.notes }}</p></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn" @click="selectedAdminTransaction = null">Close</button>
+          <button type="button" class="btn btn-primary" @click="copyTransactionLink(selectedAdminTransaction)"><Copy />{{ copiedTransactionId === selectedAdminTransaction.id ? 'Copied' : 'Copy transaction link' }}</button>
+        </div>
+      </section>
+    </div>
     <div v-if="qrPreview" class="modal-backdrop" @click.self="closeQrPreview">
       <section class="modal payment-qr-modal" role="dialog" aria-modal="true" :aria-label="`${qrPreview.name} QR code`">
         <div class="modal-head"><div><h2>{{ qrPreview.name }}</h2><p>Scan this QR code to make a payment.</p></div><button type="button" class="icon-btn" aria-label="Close QR preview" @click="closeQrPreview"><X /></button></div>

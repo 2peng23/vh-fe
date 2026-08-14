@@ -1,6 +1,7 @@
 export interface Business {
   id: number;
   name: string;
+  email: string;
   slug: string;
   currency: string;
   timezone: string;
@@ -29,8 +30,8 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
-  role:
-    "super_admin" | "owner" | "staff";
+  status: "active" | "inactive";
+  role: "super_admin" | "owner" | "staff";
   business: Business | null;
   permissions: string[];
 }
@@ -49,6 +50,7 @@ export interface Vehicle {
   notes?: string;
   acquisition_date?: string;
   acquisition_cost?: string;
+  expenses_sum_amount?: string | number;
   schedules?: Record<string, unknown>[];
   documents?: Record<string, unknown>[];
 }
@@ -57,6 +59,7 @@ export interface PaginationMeta {
   last_page: number;
   per_page: number;
   total: number;
+  total_amount?: number | string;
 }
 export interface ApiEnvelope<T> {
   success: boolean;

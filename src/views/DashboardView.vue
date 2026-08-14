@@ -9,6 +9,7 @@ import {
   ArrowUpRight,
   TrendingUp,
   LifeBuoy,
+  UserRoundCheck,
 } from "lucide-vue-next";
 import api, { errorMessage } from "../api/client";
 import type { ApiEnvelope, Vehicle } from "../types";
@@ -20,8 +21,9 @@ import AppLogo from "../components/AppLogo.vue";
 import SupportChatView from "./SupportChatView.vue";
 type Dashboard = {
   vehicles: { total: number; active: number; maintenance: number };
+  assignments: { total: number; active: number };
   issues: { open: number; critical: number };
-  maintenance: { upcoming: number; overdue: number };
+  maintenance: { total: number; upcoming: number; overdue: number };
   documents: { expiring: number; expired: number };
   expenses: {
     month: number;
@@ -39,7 +41,8 @@ const router = useRouter();
 const currency = new Intl.NumberFormat("en-PH", {
   style: "currency",
   currency: "PHP",
-  maximumFractionDigits: 0,
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
 });
 const maxExpense = computed(() =>
   Math.max(...(data.value?.expenses.by_category.map((x) => +x.total) || [1])),
@@ -69,156 +72,224 @@ onMounted(async () => {
         <div class="plan-ended-icon"><LifeBuoy /></div>
         <span class="eyebrow">ACCOUNT ACCESS PAUSED</span>
         <h1>Your plan has ended</h1>
-        <p v-if="auth.isOwner">Access for the owner and all staff accounts is currently disabled. Purchase a plan to reactivate your account.</p>
-        <p v-else>Your business plan has ended and access is currently disabled. Please notify your business owner. Only the owner can contact Vehicle Hub support and manage the renewal.</p>
-        <button v-if="auth.isOwner" class="btn btn-primary btn-block" type="button" @click="router.push('/plan-transactions?purchase=1')">Purchase plan</button>
+        <p v-if="auth.isOwner">
+          Access for the owner and all staff accounts is currently disabled.
+          Purchase a plan to reactivate your account.
+        </p>
+        <p v-else>
+          Your business plan has ended and access is currently disabled. Please
+          notify your business owner. Only the owner can contact Vehicle Hub
+          support and manage the renewal.
+        </p>
+        <button
+          v-if="auth.isOwner"
+          class="btn btn-primary btn-block"
+          type="button"
+          @click="router.push('/plan-transactions?purchase=1')"
+        >
+          Purchase plan
+        </button>
       </section>
-      <div v-if="supportOpen" class="modal-backdrop support-modal-backdrop" @click.self="supportOpen = false"><SupportChatView embedded @close="supportOpen = false" /></div>
+      <div
+        v-if="supportOpen"
+        class="modal-backdrop support-modal-backdrop"
+        @click.self="supportOpen = false"
+      >
+        <SupportChatView embedded @close="supportOpen = false" />
+      </div>
     </div>
-    <section v-else-if="auth.businessInactive" class="restricted-dashboard-card">
+    <section
+      v-else-if="auth.businessInactive"
+      class="restricted-dashboard-card"
+    >
       <span class="eyebrow">BUSINESS ACCESS DISABLED</span>
       <h1>This business account is inactive</h1>
-      <p v-if="auth.isOwner">Your business was disabled by the platform administrator. Use Support in the sidebar to request assistance.</p>
-      <p v-else>Owner and staff access is currently paused. Please notify your business owner.</p>
+      <p v-if="auth.isOwner">
+        Your business was disabled by the platform administrator. Use Support in
+        the sidebar to request assistance.
+      </p>
+      <p v-else>
+        Owner and staff access is currently paused. Please notify your business
+        owner.
+      </p>
     </section>
     <template v-else>
-    <PageHeader
-      :title="`Good ${new Date().getHours() < 12 ? 'morning' : 'afternoon'}, ${auth.user?.name?.split(' ')[0] || ''}`"
-      description="Here’s what needs your attention across the vehicle."
-    />
-    <div class="alert error" v-if="error">{{ error }}</div>
-    <LoadingState v-if="loading" /><template v-else-if="data"
-      ><div class="metric-grid">
-        <RouterLink v-if="auth.can('vehicles.view')" to="/vehicles" class="metric-card metric-link">
-          <span class="metric-icon blue"><CarFront /></span>
-          <div>
-            <small>TOTAL VEHICLES</small
-            ><strong>{{ data.vehicles.total }}</strong>
-            <p>
-              <b>{{ data.vehicles.active }}</b> active in vehicle
-            </p>
-          </div>
-        </RouterLink>
-        <RouterLink
-          v-if="auth.can('maintenance.view')"
-          to="/maintenance?filter=upcoming"
-          class="metric-card metric-link"
-        >
-          <span class="metric-icon amber"><Wrench /></span>
-          <div>
-            <small>MAINTENANCE</small
-            ><strong>{{ data.maintenance.upcoming }}</strong>
-            <p>
-              <b>{{ data.maintenance.overdue }}</b> overdue
-            </p>
-          </div>
-        </RouterLink>
-        <RouterLink v-if="auth.can('issues.view')" to="/issues?filter=open" class="metric-card metric-link">
-          <span class="metric-icon red"><TriangleAlert /></span>
-          <div>
-            <small>OPEN ISSUES</small><strong>{{ data.issues.open }}</strong>
-            <p>
-              <b>{{ data.issues.critical }}</b> critical priority
-            </p>
-          </div>
-        </RouterLink>
-        <RouterLink
-          v-if="auth.can('documents.view')"
-          to="/documents?filter=expiring"
-          class="metric-card metric-link"
-        >
-          <span class="metric-icon violet"><FileClock /></span>
-          <div>
-            <small>EXPIRING SOON</small
-            ><strong>{{ data.documents.expiring }}</strong>
-            <p>
-              <b>{{ data.documents.expired }}</b> already expired
-            </p>
-          </div>
-        </RouterLink>
-      </div>
-      <div class="dashboard-grid">
-        <section v-if="auth.can('vehicles.view')" class="card span-2">
-          <div class="card-head">
+      <PageHeader
+        :title="`Good ${new Date().getHours() < 12 ? 'morning' : 'afternoon'}, ${auth.user?.name?.split(' ')[0] || ''}`"
+        description="Here’s what needs your attention across the vehicle."
+      />
+      <div class="alert error" v-if="error">{{ error }}</div>
+      <LoadingState v-if="loading" /><template v-else-if="data"
+        ><div class="metric-grid">
+          <RouterLink
+            v-if="auth.can('vehicles.view')"
+            to="/vehicles"
+            class="metric-card metric-link"
+          >
+            <span class="metric-icon blue"><CarFront /></span>
             <div>
-              <h2>Vehicle overview</h2>
-              <p>Current status of your vehicles</p>
+              <small>TOTAL VEHICLES</small
+              ><strong>{{ data.vehicles.total }}</strong>
+              <p>
+                <b>{{ data.vehicles.active }}</b> active in vehicle
+              </p>
             </div>
-            <RouterLink to="/vehicles"
-              >View all <ArrowUpRight :size="16"
-            /></RouterLink>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Vehicle</th>
-                  <th>Plate</th>
-                  <th>Mileage</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="v in vehicles" :key="v.id">
-                  <td>
-                    <div class="vehicle-cell">
-                      <span><CarFront /></span>
-                      <div>
-                        <strong>{{ v.brand }} {{ v.model }}</strong
-                        ><small>{{ v.year }} · {{ v.vehicle_type }}</small>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="mono">{{ v.plate_number }}</td>
-                  <td>
-                    {{ Number(v.current_mileage).toLocaleString() }}
-                    km
-                  </td>
-                  <td><StatusBadge :status="v.status" /></td>
-                  <td>
-                    <RouterLink :to="`/vehicles/${v.id}`">View</RouterLink>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-        <section v-if="auth.can('reports.view')" class="card">
-          <div class="card-head">
+          </RouterLink>
+          <RouterLink
+            v-if="auth.can('assignments.view')"
+            to="/assignments"
+            class="metric-card metric-link"
+          >
+            <span class="metric-icon teal"><UserRoundCheck /></span>
             <div>
-              <h2>Vehicle spending</h2>
-              <p>This year by category</p>
+              <small>ASSIGNMENTS</small><strong>{{ data.assignments.total }}</strong>
+              <p><b>{{ data.assignments.active }}</b> currently active</p>
             </div>
-            <TrendingUp :size="20" />
-          </div>
-          <strong class="money-total">{{
-            currency.format(data.expenses.year)
-          }}</strong>
-          <p class="muted">
-            {{ currency.format(data.expenses.month) }} this month
-          </p>
-          <div class="expense-bars">
-            <div v-for="x in data.expenses.by_category" :key="x.category">
+          </RouterLink>
+          <RouterLink
+            v-if="auth.can('maintenance.view')"
+            to="/maintenance?filter=all"
+            class="metric-card metric-link"
+          >
+            <span class="metric-icon amber"><Wrench /></span>
+            <div>
+              <small>MAINTENANCE</small
+              ><strong>{{ data.maintenance.total }}</strong>
+              <p>
+                <b>{{ data.maintenance.upcoming }}</b> upcoming ·
+                <b>{{ data.maintenance.overdue }}</b> overdue
+              </p>
+            </div>
+          </RouterLink>
+          <RouterLink
+            v-if="auth.can('issues.view')"
+            to="/issues?filter=open"
+            class="metric-card metric-link"
+          >
+            <span class="metric-icon red"><TriangleAlert /></span>
+            <div>
+              <small>OPEN ISSUES</small><strong>{{ data.issues.open }}</strong>
+              <p>
+                <b>{{ data.issues.critical }}</b> critical priority
+              </p>
+            </div>
+          </RouterLink>
+          <RouterLink
+            v-if="auth.can('documents.view')"
+            to="/documents?filter=expiring"
+            class="metric-card metric-link"
+          >
+            <span class="metric-icon violet"><FileClock /></span>
+            <div>
+              <small>EXPIRING SOON</small
+              ><strong>{{ data.documents.expiring }}</strong>
+              <p>
+                <b>{{ data.documents.expired }}</b> already expired
+              </p>
+            </div>
+          </RouterLink>
+        </div>
+        <div class="dashboard-grid">
+          <section v-if="auth.can('vehicles.view')" class="card span-2">
+            <div class="card-head">
               <div>
-                <span>{{ x.category }}</span
-                ><strong>{{ currency.format(+x.total) }}</strong>
+                <h2>Vehicle overview</h2>
+                <p>Current status of your vehicles</p>
               </div>
-              <i
-                ><b
-                  :style="{
-                    width: `${(+x.total / maxExpense) * 100}%`,
-                  }"
-                ></b
-              ></i>
+              <RouterLink to="/vehicles"
+                >View all <ArrowUpRight :size="16"
+              /></RouterLink>
             </div>
-            <p v-if="!data.expenses.by_category.length" class="muted">
-              No expenses recorded this year.
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Vehicle</th>
+                    <th>Plate</th>
+                    <th>Mileage</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="v in vehicles" :key="v.id">
+                    <td>
+                      <div class="vehicle-cell">
+                        <span><CarFront /></span>
+                        <div>
+                          <strong>{{ v.brand }} {{ v.model }}</strong
+                          ><small>{{ v.year }} · {{ v.vehicle_type }}</small>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="mono">{{ v.plate_number }}</td>
+                    <td>
+                      {{ Number(v.current_mileage).toLocaleString() }}
+                      km
+                    </td>
+                    <td><StatusBadge :status="v.status" /></td>
+                    <td>
+                      <RouterLink :to="`/vehicles/${v.id}`">View</RouterLink>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <RouterLink
+            v-if="auth.can('reports.view')"
+            class="card spending-card-link"
+            :to="{ path: '/reports', query: { range: 'all' } }"
+          >
+            <div class="card-head">
+              <div>
+                <h2>Vehicle spending</h2>
+                <p>This year by category</p>
+              </div>
+              <TrendingUp :size="20" />
+            </div>
+            <strong class="money-total">{{
+              currency.format(data.expenses.year)
+            }}</strong>
+            <p class="muted">
+              {{ currency.format(data.expenses.month) }} this month
             </p>
-          </div>
-        </section>
-      </div></template
-    >
+            <div class="expense-bars">
+              <div v-for="x in data.expenses.by_category" :key="x.category">
+                <div>
+                  <span>{{ x.category }}</span
+                  ><strong>{{ currency.format(+x.total) }}</strong>
+                </div>
+                <i
+                  ><b
+                    :style="{
+                      width: `${(+x.total / maxExpense) * 100}%`,
+                    }"
+                  ></b
+                ></i>
+              </div>
+              <p v-if="!data.expenses.by_category.length" class="muted">
+                No expenses recorded this year.
+              </p>
+            </div>
+          </RouterLink>
+        </div></template
+      >
     </template>
   </div>
 </template>
+
+<style scoped>
+.spending-card-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.spending-card-link:hover {
+  transform: translateY(-2px);
+  border-color: #a9c8c4;
+  box-shadow: 0 10px 26px rgba(14, 28, 49, 0.1);
+}
+</style>

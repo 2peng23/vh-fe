@@ -22,9 +22,26 @@ const router = createRouter({
   routes: [
     { path: "/login", component: LoginView, meta: { guest: true } },
     { path: "/register", component: RegisterView, meta: { guest: true } },
-    { path: "/plan-ended", component: PlanEndedView, meta: { planEnded: true } },
-    { path: "/business-disabled", component: BusinessDisabledView, meta: { accessBlocked: true } },
-    { path: "/support", component: SupportChatView, meta: { ownerSupport: true } },
+    {
+      path: "/plan-ended",
+      component: PlanEndedView,
+      meta: { planEnded: true },
+    },
+    {
+      path: "/business-disabled",
+      component: BusinessDisabledView,
+      meta: { accessBlocked: true },
+    },
+    {
+      path: "/staff-disabled",
+      component: BusinessDisabledView,
+      meta: { staffBlocked: true },
+    },
+    {
+      path: "/support",
+      component: SupportChatView,
+      meta: { ownerSupport: true },
+    },
     {
       path: "/superadmin",
       component: SuperAdminView,
@@ -34,8 +51,18 @@ const router = createRouter({
       path: "/",
       component: AppLayout,
       children: [
-        { path: "", name: "dashboard", component: DashboardView, meta: { permission: "dashboard.view" } },
-        { path: "vehicles", name: "vehicles", component: VehiclesView, meta: { permission: "vehicles.view" } },
+        {
+          path: "",
+          name: "dashboard",
+          component: DashboardView,
+          meta: { permission: "dashboard.view" },
+        },
+        {
+          path: "vehicles",
+          name: "vehicles",
+          component: VehiclesView,
+          meta: { permission: "vehicles.view" },
+        },
         {
           path: "vehicles/:id",
           name: "vehicle-detail",
@@ -80,14 +107,26 @@ const router = createRouter({
           },
           meta: { permission: "assignments.view" },
         },
-        { path: "reports", component: ReportsView, meta: { permission: "reports.view" } },
-        { path: "notifications", component: NotificationsView, meta: { permission: "notifications.view" } },
+        {
+          path: "reports",
+          component: ReportsView,
+          meta: { permission: "reports.view" },
+        },
+        {
+          path: "notifications",
+          component: NotificationsView,
+          meta: { permission: "notifications.view" },
+        },
         {
           path: "audit-logs",
           component: AuditLogsView,
           meta: { permission: "audit.view" },
         },
-        { path: "staff", component: StaffView, meta: { permission: "staff.view" } },
+        {
+          path: "staff",
+          component: StaffView,
+          meta: { permission: "staff.view" },
+        },
         {
           path: "plan-transactions",
           component: PlanTransactionsView,
@@ -102,11 +141,19 @@ router.beforeEach((to) => {
   const user = JSON.parse(localStorage.getItem("vehiclehub_user") || "null");
   const planEnded = user?.business?.subscription?.plan_ended === true;
   const businessInactive = user?.business?.status === "inactive";
+  const staffInactive = user?.role === "staff" && user?.status === "inactive";
+
+  if (to.meta.staffBlocked) {
+    if (!logged) return "/login";
+    if (!staffInactive) return "/";
+    return;
+  }
 
   // Restricted account pages are only available for the matching account state.
   if (to.meta.accessBlocked) {
     if (!logged) return "/login";
-    if (!businessInactive) return user?.role === "super_admin" ? "/superadmin" : "/";
+    if (!businessInactive)
+      return user?.role === "super_admin" ? "/superadmin" : "/";
     return;
   }
   if (to.meta.planEnded) {
@@ -119,6 +166,7 @@ router.beforeEach((to) => {
   }
   if (!logged && !to.meta.guest) return "/login";
   if (logged && to.meta.guest) return "/";
+  if (staffInactive) return "/staff-disabled";
   if (businessInactive) return "/business-disabled";
   if (planEnded && !["/", "/plan-transactions"].includes(to.path)) return "/";
   if (to.meta.ownerTransactions && user?.role !== "owner") return "/";
@@ -131,6 +179,7 @@ router.beforeEach((to) => {
     to.meta.permission &&
     user?.role !== "super_admin" &&
     !(user?.permissions || []).includes(to.meta.permission)
-  ) return to.path === "/" ? undefined : "/";
+  )
+    return to.path === "/" ? undefined : "/";
 });
 export default router;

@@ -13,26 +13,40 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(undefined, (error) => {
   const accessCode = error.response?.data?.code;
-  if (error.response?.status === 403 && ["PLAN_ENDED", "BUSINESS_INACTIVE"].includes(accessCode)) {
+  if (
+    error.response?.status === 403 &&
+    ["PLAN_ENDED", "BUSINESS_INACTIVE", "STAFF_INACTIVE"].includes(accessCode)
+  ) {
     const session = error.response?.data?.data;
     if (session?.token && session?.user) {
       localStorage.setItem("vehiclehub_token", session.token);
       localStorage.setItem("vehiclehub_user", JSON.stringify(session.user));
     } else {
-      const cachedUser = JSON.parse(localStorage.getItem("vehiclehub_user") || "null");
+      const cachedUser = JSON.parse(
+        localStorage.getItem("vehiclehub_user") || "null",
+      );
       if (cachedUser?.business) {
         if (accessCode === "PLAN_ENDED" && cachedUser.business.subscription) {
           cachedUser.business.subscription.plan_ended = true;
           cachedUser.business.subscription.status = "past_due";
         }
-        if (accessCode === "BUSINESS_INACTIVE") cachedUser.business.status = "inactive";
+        if (accessCode === "BUSINESS_INACTIVE")
+          cachedUser.business.status = "inactive";
+        if (accessCode === "STAFF_INACTIVE") cachedUser.status = "inactive";
         localStorage.setItem("vehiclehub_user", JSON.stringify(cachedUser));
       }
     }
     window.dispatchEvent(new CustomEvent("vehiclehub-access-changed"));
-    const destination = accessCode === "BUSINESS_INACTIVE" ? "/business-disabled" : "/";
-    const allowsExpiredPlan = accessCode === "PLAN_ENDED" && location.pathname === "/plan-transactions";
-    if (!allowsExpiredPlan && location.pathname !== destination) location.assign(destination);
+    const destination =
+      accessCode === "STAFF_INACTIVE"
+        ? "/staff-disabled"
+        : accessCode === "BUSINESS_INACTIVE"
+          ? "/business-disabled"
+          : "/";
+    const allowsExpiredPlan =
+      accessCode === "PLAN_ENDED" && location.pathname === "/plan-transactions";
+    if (!allowsExpiredPlan && location.pathname !== destination)
+      location.assign(destination);
   }
   if (error.response?.status === 401) {
     const adminToken = localStorage.getItem("vehiclehub_admin_token");

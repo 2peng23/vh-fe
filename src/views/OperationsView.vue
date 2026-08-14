@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
+import { Wrench } from "lucide-vue-next";
 import api, { errorMessage } from "../api/client";
 import type { ApiEnvelope, PaginationMeta } from "../types";
 import PageHeader from "../components/PageHeader.vue";
@@ -9,10 +10,12 @@ import EmptyState from "../components/EmptyState.vue";
 import StatusBadge from "../components/StatusBadge.vue";
 import PaginationControls from "../components/PaginationControls.vue";
 import { formatDate } from "../utils/date";
+import { useAuthStore } from "../stores/auth";
 
 type Operation = "maintenance" | "issues" | "documents";
 const props = defineProps<{ operation: Operation }>();
 const route = useRoute();
+const auth = useAuthStore();
 const rows = ref<any[]>([]),
   meta = ref<PaginationMeta>(),
   loading = ref(true),
@@ -130,6 +133,7 @@ onMounted(load);
             <tr>
               <th>Vehicle</th>
               <th>Maintenance type</th>
+              <th>Current mileage</th>
               <th>Next mileage</th>
               <th>Next date</th>
               <th>Status</th>
@@ -139,12 +143,27 @@ onMounted(load);
           <tbody>
             <tr v-for="row in rows" :key="row.id">
               <td>
-                <strong>{{ vehicleName(row) }}</strong
-                ><small class="cell-small mono">{{
-                  row.vehicle?.plate_number
-                }}</small>
+                <RouterLink
+                  class="operation-vehicle-link"
+                  :to="`/vehicles/${row.vehicle_id}`"
+                  title="Open the vehicle details"
+                >
+                  <strong>{{ vehicleName(row) }}</strong>
+                  <small class="cell-small mono">{{
+                    row.vehicle?.plate_number
+                  }}</small>
+                </RouterLink>
               </td>
               <td>{{ row.maintenance_type }}</td>
+              <td>
+                {{
+                  row.vehicle?.current_mileage !== null &&
+                  row.vehicle?.current_mileage !== undefined
+                    ? Number(row.vehicle.current_mileage).toLocaleString() +
+                      " km"
+                    : "—"
+                }}
+              </td>
               <td>
                 {{
                   row.next_service_mileage
@@ -155,9 +174,17 @@ onMounted(load);
               <td>{{ formatDate(row.next_service_date) }}</td>
               <td><StatusBadge :status="row.due_status" /></td>
               <td>
-                <RouterLink :to="`/vehicles/${row.vehicle_id}`"
-                  >View vehicle</RouterLink
-                >
+                <div class="operation-actions">
+                  <RouterLink
+                    v-if="auth.can('maintenance.create')"
+                    class="operation-record-link"
+                    :to="`/vehicles/${row.vehicle_id}?tab=maintenance&schedule=${row.id}`"
+                    title="Add a completed maintenance record for this schedule"
+                  >
+                    <Wrench aria-hidden="true" />
+                    Record maintenance
+                  </RouterLink>
+                </div>
               </td>
             </tr>
           </tbody>

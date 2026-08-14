@@ -15,10 +15,12 @@ export const useAuthStore = defineStore("auth", {
     canManage: (s) => s.user?.role === "owner",
     isSuperAdmin: (s) => s.user?.role === "super_admin",
     isOwner: (s) => s.user?.role === "owner",
+    staffInactive: (s) =>
+      s.user?.role === "staff" && s.user?.status === "inactive",
     planEnded: (s) => s.user?.business?.subscription?.plan_ended === true,
     businessInactive: (s) => s.user?.business?.status === "inactive",
     accessRestricted(): boolean {
-      return this.planEnded || this.businessInactive;
+      return this.planEnded || this.businessInactive || this.staffInactive;
     },
     isImpersonating: (s) => s.impersonating,
     can: (s) => (permission: string) =>
@@ -59,7 +61,9 @@ export const useAuthStore = defineStore("auth", {
     },
     /** Synchronize reactive authentication state after an interceptor changes access. */
     syncCachedUser() {
-      this.user = JSON.parse(localStorage.getItem("vehiclehub_user") || "null") as User | null;
+      this.user = JSON.parse(
+        localStorage.getItem("vehiclehub_user") || "null",
+      ) as User | null;
     },
     async fetchMe() {
       const { data } = await api.get<ApiEnvelope<User>>("/me");
@@ -78,7 +82,8 @@ export const useAuthStore = defineStore("auth", {
       >(`/superadmin/users/${userId}/impersonate`);
       const adminToken = localStorage.getItem("vehiclehub_token");
       const adminUser = localStorage.getItem("vehiclehub_user");
-      if (adminToken) localStorage.setItem("vehiclehub_admin_token", adminToken);
+      if (adminToken)
+        localStorage.setItem("vehiclehub_admin_token", adminToken);
       if (adminUser) localStorage.setItem("vehiclehub_admin_user", adminUser);
       this.impersonating = true;
       this.setSession(data.data);

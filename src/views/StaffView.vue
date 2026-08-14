@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from "vue";
-import { Pencil, Plus, Trash2, X } from "lucide-vue-next";
+import { Eye, EyeOff, Pencil, Plus, Trash2, X } from "lucide-vue-next";
 import api, { errorMessage, validationErrors } from "../api/client";
 import type { ApiEnvelope, PaginationMeta } from "../types";
 import PageHeader from "../components/PageHeader.vue";
@@ -23,6 +23,8 @@ const auth = useAuthStore(),
   editing = ref<any | null>(null),
   pendingDelete = ref<any | null>(null),
   deleting = ref(false),
+  showPassword = ref(false),
+  showPasswordConfirmation = ref(false),
   errors = ref<Record<string, string[]>>({});
 const form = reactive<Record<string, any>>({});
 async function load() {
@@ -42,6 +44,8 @@ async function load() {
 function openForm(row?: any) {
   editing.value = row || null;
   errors.value = {};
+  showPassword.value = false;
+  showPasswordConfirmation.value = false;
   Object.keys(form).forEach((key) => delete form[key]);
   Object.assign(form, {
     name: row?.name || "",
@@ -199,21 +203,51 @@ watch(perPage, () => {
               <option value="inactive">Inactive</option>
             </select></label
           ><label
-            >Password<input
-              v-model="form.password"
-              type="password"
-              :required="!editing"
-              autocomplete="new-password"
-            /><small v-if="editing"
+            >Password
+            <div class="password-field">
+              <input
+                v-model="form.password"
+                :type="showPassword ? 'text' : 'password'"
+                :required="!editing"
+                autocomplete="new-password"
+              /><button
+                type="button"
+                :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                :title="showPassword ? 'Hide password' : 'Show password'"
+                @click="showPassword = !showPassword"
+              >
+                <EyeOff v-if="showPassword" /><Eye v-else />
+              </button>
+            </div>
+            <small v-if="editing"
               >Leave blank to keep current password</small
             ></label
           ><label
-            >Password confirmation<input
-              v-model="form.password_confirmation"
-              type="password"
-              :required="!editing"
-              autocomplete="new-password"
-          /></label>
+            >Password confirmation
+            <div class="password-field">
+              <input
+                v-model="form.password_confirmation"
+                :type="showPasswordConfirmation ? 'text' : 'password'"
+                :required="!editing"
+                autocomplete="new-password"
+              /><button
+                type="button"
+                :aria-label="
+                  showPasswordConfirmation
+                    ? 'Hide password confirmation'
+                    : 'Show password confirmation'
+                "
+                :title="
+                  showPasswordConfirmation
+                    ? 'Hide password confirmation'
+                    : 'Show password confirmation'
+                "
+                @click="showPasswordConfirmation = !showPasswordConfirmation"
+              >
+                <EyeOff v-if="showPasswordConfirmation" /><Eye v-else />
+              </button>
+            </div>
+          </label>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn" @click="modal = false">

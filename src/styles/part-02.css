@@ -117,7 +117,7 @@
 }
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 16px;
   margin-bottom: 18px;
 }
@@ -320,6 +320,10 @@
   background: #eee9fa;
   color: #7655b8;
 }
+.metric-icon.teal {
+  color: var(--teal-dark);
+  background: var(--teal-soft);
+}
 .dashboard-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -393,6 +397,13 @@ td a {
   align-items: center;
   gap: 11px;
   color: #17243a;
+  text-decoration: none;
+}
+.vehicle-cell:hover strong,
+.vehicle-cell:focus-visible strong {
+  color: var(--teal-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .vehicle-cell > span {
   width: 35px;

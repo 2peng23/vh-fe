@@ -1,13 +1,21 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from "vue";
-import { Download, Eye, Search, X } from "lucide-vue-next";
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from "vue";
+import { RouterLink } from "vue-router";
+import { Download, Eye, RotateCcw, Search, X } from "lucide-vue-next";
 import api, { errorMessage } from "../api/client";
 import type { ApiEnvelope, PaginationMeta } from "../types";
 import PageHeader from "../components/PageHeader.vue";
 import LoadingState from "../components/LoadingState.vue";
 import EmptyState from "../components/EmptyState.vue";
 import PaginationControls from "../components/PaginationControls.vue";
-import { formatDateTime } from "../utils/date";
+import { formatDate, formatDateTime } from "../utils/date";
 import { useAuthStore } from "../stores/auth";
 const auth = useAuthStore();
 
@@ -32,6 +40,20 @@ const error = ref("");
 const page = ref(1);
 const perPage = ref(20);
 const selected = ref<AuditLog | null>(null);
+const documentPreviewUrl = ref("");
+const documentPreviewOpen = ref(false);
+const documentPreviewName = ref("vehicle-document");
+const documentPreviewType = ref("");
+const documentPreviewIsPdf = computed(
+  () =>
+    documentPreviewType.value === "application/pdf" ||
+    documentPreviewName.value.toLowerCase().endsWith(".pdf"),
+);
+const documentPreviewIsImage = computed(
+  () =>
+    documentPreviewType.value.startsWith("image/") ||
+    /\.(?:jpe?g|png)$/i.test(documentPreviewName.value),
+);
 const options = ref<{
   actions: string[];
   entities: { value: string; label: string }[];
@@ -99,10 +121,52 @@ async function exportCsv() {
   }
 }
 function label(value: string) {
+  if (value === "file_path") return "File";
+  if (value === "vehicle_id") return "Vehicle";
   return value.replaceAll(".", " ").replaceAll("_", " ");
 }
-function value(value: unknown) {
+async function viewDocumentFile(
+  row: AuditLog,
+  path: unknown,
+  version: "old" | "new",
+) {
+  if (!path) return;
+  const response = await api.get(`/audit-logs/${row.id}/document-file`, {
+    params: { version },
+    responseType: "blob",
+  });
+  closeDocumentPreview();
+  documentPreviewUrl.value = URL.createObjectURL(response.data);
+  documentPreviewName.value =
+    String(path).split("/").pop() || "vehicle-document";
+  documentPreviewType.value = response.data.type || "";
+  documentPreviewOpen.value = true;
+}
+function downloadPreviewDocument() {
+  if (!documentPreviewUrl.value) return;
+  const link = document.createElement("a");
+  link.href = documentPreviewUrl.value;
+  link.download = documentPreviewName.value;
+  link.click();
+}
+function closeDocumentPreview() {
+  documentPreviewOpen.value = false;
+  if (documentPreviewUrl.value) {
+    URL.revokeObjectURL(documentPreviewUrl.value);
+    documentPreviewUrl.value = "";
+  }
+}
+function value(value: unknown, key = "") {
   if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "string" && key.endsWith("_date")) {
+    return formatDate(value);
+  }
+  if (
+    typeof value === "string" &&
+    (key.endsWith("_at") || /^\d{4}-\d{2}-\d{2}T/.test(value))
+  ) {
+    return formatDateTime(value);
+  }
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
 }
@@ -136,6 +200,7 @@ watch(perPage, () => {
   page.value = 1;
   load();
 });
+onBeforeUnmount(closeDocumentPreview);
 </script>
 
 <template>
@@ -144,7 +209,12 @@ watch(perPage, () => {
       title="Audit log"
       description="Review important activity and data changes across your vehicle."
     >
-      <button v-if="auth.can('audit.export')" class="btn" :disabled="exporting" @click="exportCsv">
+      <button
+        v-if="auth.can('audit.export')"
+        class="btn"
+        :disabled="exporting"
+        @click="exportCsv"
+      >
         <Download />{{ exporting ? "Exporting…" : "Export CSV" }}
       </button>
     </PageHeader>
@@ -181,7 +251,7 @@ watch(perPage, () => {
       <label>From<input v-model="filters.from" type="date" /></label>
       <label>To<input v-model="filters.to" type="date" /></label>
       <button class="btn btn-primary" @click="applyFilters">Apply</button>
-      <button class="btn" @click="clearFilters">Clear</button>
+        <button class="btn" @click="clearFilters"><RotateCcw aria-hidden="true" /> Reset</button>
     </div>
     <div v-if="error" class="alert error">{{ error }}</div>
     <LoadingState v-if="loading" />
@@ -278,8 +348,42 @@ watch(perPage, () => {
             <tbody>
               <tr v-for="change in changes(selected)" :key="change.key">
                 <td>{{ label(change.key) }}</td>
-                <td>{{ value(change.old) }}</td>
-                <td>{{ value(change.new) }}</td>
+                <td>
+                  <button
+                    v-if="change.key === 'file_path' && change.old"
+                    type="button"
+                    class="table-action"
+                    @click="viewDocumentFile(selected, change.old, 'old')"
+                  >
+                    <Eye />View</button
+                  ><RouterLink
+                    v-else-if="change.key === 'vehicle_id' && change.old"
+                    class="source-link"
+                    :to="`/vehicles/${change.old}`"
+                    @click="selected = null"
+                    >Vehicle #{{ change.old }}</RouterLink
+                  ><template v-else>{{
+                    value(change.old, change.key)
+                  }}</template>
+                </td>
+                <td>
+                  <button
+                    v-if="change.key === 'file_path' && change.new"
+                    type="button"
+                    class="table-action"
+                    @click="viewDocumentFile(selected, change.new, 'new')"
+                  >
+                    <Eye />View</button
+                  ><RouterLink
+                    v-else-if="change.key === 'vehicle_id' && change.new"
+                    class="source-link"
+                    :to="`/vehicles/${change.new}`"
+                    @click="selected = null"
+                    >Vehicle #{{ change.new }}</RouterLink
+                  ><template v-else>{{
+                    value(change.new, change.key)
+                  }}</template>
+                </td>
               </tr>
               <tr v-if="!changes(selected).length">
                 <td colspan="3" class="empty-cell">
@@ -293,6 +397,54 @@ watch(perPage, () => {
           <button class="btn" @click="selected = null">Close</button>
         </div>
       </section>
+    </div>
+    <div
+      v-if="documentPreviewOpen"
+      class="modal-backdrop photo-preview-backdrop"
+      @click.self="closeDocumentPreview"
+    >
+      <div
+        class="photo-preview-modal document-preview-modal"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div class="modal-head">
+          <div>
+            <h2>Document preview</h2>
+            <p>{{ documentPreviewName }}</p>
+          </div>
+          <div class="modal-head-actions">
+            <button type="button" class="btn" @click="downloadPreviewDocument">
+              <Download />Download
+            </button>
+            <button
+              type="button"
+              class="icon-btn"
+              aria-label="Close"
+              @click="closeDocumentPreview"
+            >
+              <X />
+            </button>
+          </div>
+        </div>
+        <div class="document-preview-body">
+          <iframe
+            v-if="documentPreviewIsPdf"
+            :src="documentPreviewUrl"
+            title="Audited document preview"
+          ></iframe>
+          <img
+            v-else-if="documentPreviewIsImage"
+            :src="documentPreviewUrl"
+            alt="Audited document preview"
+          />
+          <EmptyState
+            v-else
+            title="Preview unavailable"
+            message="This file type cannot be previewed. Use Download to open it on your device."
+          />
+        </div>
+      </div>
     </div>
   </div>
 </template>

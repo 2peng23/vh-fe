@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRouter, RouterLink } from "vue-router";
-import { Eye, EyeOff, ShieldCheck, CheckCircle2, MessageCircle } from "lucide-vue-next";
+import {
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  CheckCircle2,
+  MessageCircle,
+} from "lucide-vue-next";
 import AppLogo from "../../components/AppLogo.vue";
 import SupportChatView from "../SupportChatView.vue";
 import { useAuthStore } from "../../stores/auth";
@@ -21,6 +27,10 @@ async function submit() {
   } catch (e) {
     if ((e as any)?.response?.data?.code === "BUSINESS_INACTIVE") {
       router.push("/business-disabled");
+      return;
+    }
+    if ((e as any)?.response?.data?.code === "STAFF_INACTIVE") {
+      router.push("/staff-disabled");
       return;
     }
     if ((e as any)?.response?.data?.code === "PLAN_ENDED") {
@@ -80,7 +90,13 @@ async function submit() {
         <small class="auth-legal"
           >By continuing, you agree to our Terms and Privacy Policy.</small
         >
-        <button type="button" class="login-support-button" @click="supportOpen = true"><MessageCircle />Contact support</button>
+        <button
+          type="button"
+          class="login-support-button"
+          @click="supportOpen = true"
+        >
+          <MessageCircle />Contact support
+        </button>
       </div>
     </section>
     <section class="auth-showcase">
@@ -101,6 +117,12 @@ async function submit() {
       </div>
       <div class="road-lines"></div>
     </section>
-    <div v-if="supportOpen" class="modal-backdrop support-modal-backdrop" @click.self="supportOpen = false"><SupportChatView embedded guest @close="supportOpen = false" /></div>
+    <div
+      v-if="supportOpen"
+      class="modal-backdrop support-modal-backdrop"
+      @click.self="supportOpen = false"
+    >
+      <SupportChatView embedded guest @close="supportOpen = false" />
+    </div>
   </div>
 </template>

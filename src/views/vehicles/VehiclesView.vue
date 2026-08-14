@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
-import { Plus, Search, CarFront, ArrowRight, X } from "lucide-vue-next";
+import { Plus, Search, CarFront, X } from "lucide-vue-next";
 import api, { errorMessage, validationErrors } from "../../api/client";
 import type { ApiEnvelope, PaginationMeta, Vehicle } from "../../types";
 import PageHeader from "../../components/PageHeader.vue";
@@ -30,9 +30,6 @@ const vehicles = ref<Vehicle[]>([]),
   errors = ref<Record<string, string[]>>({});
 const form = reactive({
   plate_number: "",
-  vehicle_code: "",
-  code_prefix: "VAN-",
-  code_number: "",
   brand: "",
   model: "",
   variant: "",
@@ -45,29 +42,6 @@ const form = reactive({
   acquisition_cost: "",
   notes: "",
 });
-const codeOptions = [
-  { prefix: "TRK-", type: "Truck", label: "TRK- — Truck" },
-  { prefix: "VAN-", type: "Van", label: "VAN- — Van" },
-  { prefix: "CAR-", type: "Car", label: "CAR- — Car" },
-  { prefix: "BUS-", type: "Bus", label: "BUS- — Bus" },
-  { prefix: "PUP-", type: "Pickup", label: "PUP- — Pickup" },
-  { prefix: "MC-", type: "Motorcycle", label: "MC- — Motorcycle" },
-  { prefix: "SUV-", type: "SUV", label: "SUV- — SUV" },
-  {
-    prefix: "HEQ-",
-    type: "Heavy Equipment",
-    label: "HEQ- — Heavy Equipment",
-  },
-  { prefix: "OTH-", type: "Other", label: "OTH- — Other" },
-];
-function selectCodePrefix() {
-  const option = codeOptions.find((item) => item.prefix === form.code_prefix);
-  if (option) form.vehicle_type = option.type;
-}
-function selectVehicleType() {
-  const option = codeOptions.find((item) => item.type === form.vehicle_type);
-  form.code_prefix = option?.prefix || "OTH-";
-}
 let timer: number;
 async function load() {
   loading.value = true;
@@ -105,14 +79,10 @@ async function save() {
   saving.value = true;
   errors.value = {};
   try {
-    const vehicleCode = `${form.code_prefix}${form.code_number.trim().toUpperCase()}`;
-    await api.post("/vehicles", { ...form, vehicle_code: vehicleCode });
+    await api.post("/vehicles", form);
     modal.value = false;
     Object.assign(form, {
       plate_number: "",
-      vehicle_code: "",
-      code_prefix: "VAN-",
-      code_number: "",
       brand: "",
       model: "",
       variant: "",
@@ -188,7 +158,6 @@ async function save() {
               <th>Type</th>
               <th>Current mileage</th>
               <th>Status</th>
-              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -212,15 +181,6 @@ async function save() {
                 km
               </td>
               <td><StatusBadge :status="v.status" /></td>
-              <td>
-                <RouterLink
-                  class="icon-btn"
-                  :to="`/vehicles/${v.id}`"
-                  title="View vehicle"
-                  aria-label="View vehicle"
-                  ><ArrowRight
-                /></RouterLink>
-              </td>
             </tr>
           </tbody>
         </table>
@@ -249,28 +209,6 @@ async function save() {
               v-if="errors.plate_number"
               >{{ errors.plate_number[0] }}</small
             ></label
-          ><label
-            >Vehicle code type<select
-              v-model="form.code_prefix"
-              @change="selectCodePrefix"
-            >
-              <option
-                v-for="option in codeOptions"
-                :key="option.prefix"
-                :value="option.prefix"
-              >
-                {{ option.label }}
-              </option>
-            </select></label
-          ><label
-            >Vehicle code number<input
-              v-model="form.code_number"
-              required
-              maxlength="20"
-              placeholder="Example: 0001"
-            /><small v-if="errors.vehicle_code">{{
-              errors.vehicle_code[0]
-            }}</small></label
           ><label>Brand<input v-model="form.brand" required /></label
           ><label>Model<input v-model="form.model" required /></label
           ><label>Variant<input v-model="form.variant" /></label
@@ -278,7 +216,6 @@ async function save() {
           ><label
             >Vehicle type<select
               v-model="form.vehicle_type"
-              @change="selectVehicleType"
             >
               <option>Car</option>
               <option>Van</option>

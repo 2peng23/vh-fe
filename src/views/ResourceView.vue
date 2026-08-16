@@ -139,7 +139,11 @@ async function save() {
         await api.post(`/${props.resource}`, payload);
       }
     } else {
-      await api.post(`/${props.resource}`, form);
+      if (editing.value) {
+        await api.put(`/${props.resource}/${editing.value.id}`, form);
+      } else{
+        await api.post(`/${props.resource}`, form);
+      }
     }
     modal.value = false;
     load();
@@ -204,6 +208,10 @@ function fieldHelp(key: string) {
     },
     assigned_at: {
       text: "The date when the driver starts using the vehicle.",
+      optional: true,
+    },
+    returned_at: {
+      text: "The date when the driver returned the vehicle.",
       optional: true,
     },
     notes: {
@@ -277,7 +285,7 @@ onBeforeUnmount(() => {
       ><button
         v-if="auth.can(`${resource}.create`)"
         class="btn btn-primary"
-        @click="open"
+        @click="open()"
       >
         <Plus />Add
         {{ resource === "drivers" ? "driver" : "assignment" }}
@@ -286,6 +294,9 @@ onBeforeUnmount(() => {
     <div v-if="resource === 'drivers'" class="toolbar">
       <div class="search-input">
         <Search /><input
+          type="text"
+          id="search-input"
+          aria-label="search-input"
           v-model="search"
           placeholder="Search name, employee ID, contact or license"
         />
@@ -313,8 +324,8 @@ onBeforeUnmount(() => {
               ><template v-else
                 ><th>Vehicle</th>
                 <th>Driver</th>
-                <th>Assigned</th>
-                <th>Returned</th>
+                <th>Assigned Date</th>
+                <th>Return Date</th>
                 <th>Status</th>
                 <th>Actions</th></template
               >

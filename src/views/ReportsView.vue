@@ -352,6 +352,7 @@ watch(perPage, () => {
 .report-filters {
   padding: 0;
   overflow: hidden;
+  margin-bottom: 5px;
 }
 
 .report-filter-toggle {

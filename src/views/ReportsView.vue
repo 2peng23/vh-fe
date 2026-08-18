@@ -14,7 +14,7 @@ import type { ApiEnvelope } from "../types";
 import PageHeader from "../components/PageHeader.vue";
 import LoadingState from "../components/LoadingState.vue";
 import PaginationControls from "../components/PaginationControls.vue";
-import { formatDate } from "../utils/date";
+import { formatCurrency, formatDate, localDate } from "../utils";
 import { useAuthStore } from "../stores/auth";
 const auth = useAuthStore();
 const route = useRoute();
@@ -37,14 +37,6 @@ const report = ref<any>({ rows: [], summary: [] }),
     category: "",
     vehicle_code: "",
   });
-function localDate(date: Date) {
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
-}
-const money = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-});
 const currentPageTotal = computed(() =>
   report.value.rows.reduce(
     (total: number, expense: any) => total + Number(expense.amount || 0),
@@ -253,11 +245,11 @@ watch(perPage, () => {
           <div class="totals-section">
             <div class="total-item">
               <small>PAGE TOTAL: </small>
-              <strong>{{ money.format(currentPageTotal) }}</strong>
+              <strong>{{ formatCurrency(currentPageTotal) }}</strong>
             </div>
             <div class="total-item">
               <small>OVERALL TOTAL: </small>
-              <strong>{{ money.format(allRecordsTotal) }}</strong>
+              <strong>{{ formatCurrency(allRecordsTotal) }}</strong>
             </div>
           </div>
         </div>
@@ -309,7 +301,7 @@ watch(perPage, () => {
                 <td>{{ r.category }}</td>
                 <td>{{ r.vendor || "—" }}</td>
                 <td>
-                  <strong>{{ money.format(+r.amount) }}</strong>
+                  <strong>{{ formatCurrency(r.amount) }}</strong>
                 </td>
                 <td>
                   <button
@@ -338,277 +330,3 @@ watch(perPage, () => {
     ></template>
   </div>
 </template>
-
-<style scoped>
-.description-link {
-  appearance: none;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  cursor: pointer;
-  color: var(--teal);
-  font-weight: 600;
-}
-.report-filters {
-  padding: 0;
-  overflow: hidden;
-  margin-bottom: 5px;
-}
-
-.report-filter-toggle {
-  width: 100%;
-  padding: 14px 18px;
-  border: 0;
-  background: transparent;
-  color: #24324a;
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.report-filter-toggle > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-}
-
-.report-filter-toggle svg {
-  width: 18px;
-  height: 18px;
-  transition: transform 0.22s ease;
-}
-
-.report-filter-toggle svg.rotated {
-  transform: rotate(180deg);
-}
-
-.report-filter-content {
-  padding: 16px 18px 18px;
-  border-top: 1px solid #e3e8ee;
-}
-
-.filter-panel-enter-active,
-.filter-panel-leave-active {
-  overflow: hidden;
-  transition:
-    max-height 0.24s ease,
-    opacity 0.18s ease,
-    transform 0.2s ease;
-}
-
-.filter-panel-enter-from,
-.filter-panel-leave-to {
-  max-height: 0;
-  opacity: 0;
-  transform: translateY(-4px);
-}
-
-.filter-panel-enter-to,
-.filter-panel-leave-from {
-  max-height: 360px;
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.quick-date-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin-bottom: 14px;
-}
-
-.report-filter-fields {
-  display: grid;
-  grid-template-columns:
-    minmax(140px, 180px) minmax(140px, 180px) minmax(170px, 210px)
-    minmax(180px, 1fr);
-  gap: 12px;
-  align-items: end;
-}
-
-.report-filter-actions {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.report-filter-actions .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  white-space: nowrap;
-}
-
-.report-filter-actions svg {
-  width: 16px;
-  height: 16px;
-}
-
-.report-filter-fields input,
-.report-filter-fields select {
-  width: 100%;
-  min-width: 0;
-  border: 1px solid #d9e0e6;
-  background: #fff;
-  border-radius: 7px;
-  padding: 10px 11px;
-  outline: 0;
-}
-
-@media (max-width: 900px) {
-  .report-filter-fields {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 560px) {
-  .report-filter-fields {
-    grid-template-columns: 1fr;
-  }
-
-  .report-filter-actions {
-    flex-direction: column;
-  }
-
-  .report-filter-actions .btn {
-    width: 100%;
-  }
-}
-
-.card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-.totals-section {
-  display: flex;
-  gap: 16px;
-  align-items: flex-end;
-}
-
-.total-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  text-align: right;
-}
-
-.total-item small {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.total-item strong {
-  font-size: 18px;
-  font-weight: 700;
-  color: #24324a;
-}
-
-@media (max-width: 768px) {
-  .card-head {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .totals-section {
-    width: 100%;
-    justify-content: flex-start;
-    gap: 24px;
-  }
-
-  .total-item {
-    text-align: left;
-  }
-}
-
-.metric-card .metric-category {
-  margin-top: 3px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.vehicle-link {
-  appearance: none;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.vehicle-link:hover,
-.vehicle-link:focus-visible {
-  color: var(--teal-dark);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.vehicle-code-cell {
-  display: inline-grid;
-  grid-template-columns: 7rem 28px;
-  align-items: center;
-  column-gap: 6px;
-  min-height: 28px;
-  vertical-align: middle;
-  white-space: nowrap;
-}
-
-.vehicle-code-cell > span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.25;
-}
-
-.copy-code-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 28px;
-  width: 28px;
-  height: 28px;
-  border: 0;
-  border-radius: 6px;
-  margin: 0;
-  padding: 0;
-  background: transparent;
-  color: #718096;
-  line-height: 0;
-  vertical-align: middle;
-  cursor: pointer;
-}
-
-.copy-code-button :deep(svg) {
-  display: block;
-  width: 17px;
-  height: 17px;
-}
-
-.copy-code-button:hover,
-.copy-code-button:focus-visible {
-  background: var(--teal-soft);
-  color: var(--teal-dark);
-}
-
-.copy-code-button.copied {
-  color: var(--teal-dark);
-}
-
-.copy-code-button svg {
-  width: 15px;
-  height: 15px;
-}
-</style>

@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { X } from "lucide-vue-next";
-import { formatDate } from "../../../utils/date";
+import { formatCurrency, formatDate } from "../../../utils";
 
 defineProps<{
   expense: any | null;
-  money: Intl.NumberFormat;
 }>();
 
 const emit = defineEmits<{
@@ -28,7 +27,7 @@ const emit = defineEmits<{
 
       <dl class="maintenance-detail-list">
         <div><dt>Category</dt><dd>{{ expense.category }}</dd></div>
-        <div><dt>Amount</dt><dd>{{ money.format(Number(expense.amount)) }}</dd></div>
+        <div><dt>Amount</dt><dd>{{ formatCurrency(expense.amount) }}</dd></div>
         <div><dt>Expense date</dt><dd>{{ formatDate(expense.expense_date) }}</dd></div>
         <div><dt>Vendor</dt><dd>{{ expense.vendor || "—" }}</dd></div>
         <div class="full"><dt>Recorded by</dt><dd>{{ expense.recorder?.name || "—" }}</dd></div>

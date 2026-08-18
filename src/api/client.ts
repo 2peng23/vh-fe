@@ -42,9 +42,10 @@ api.interceptors.response.use(undefined, (error) => {
         ? "/staff-disabled"
         : accessCode === "BUSINESS_INACTIVE"
           ? "/business-disabled"
-          : "/";
+          : "/dashboard";
     const allowsExpiredPlan =
-      accessCode === "PLAN_ENDED" && location.pathname === "/plan-transactions";
+      accessCode === "PLAN_ENDED" &&
+      ["/plan-transactions", "/subscription"].includes(location.pathname);
     if (!allowsExpiredPlan && location.pathname !== destination)
       location.assign(destination);
   }

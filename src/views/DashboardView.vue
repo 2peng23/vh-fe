@@ -19,6 +19,7 @@ import StatusBadge from "../components/StatusBadge.vue";
 import { useAuthStore } from "../stores/auth";
 import AppLogo from "../components/AppLogo.vue";
 import SupportChatView from "./SupportChatView.vue";
+import { formatCurrency } from "../utils";
 type Dashboard = {
   vehicles: { total: number; active: number; maintenance: number };
   assignments: { total: number; active: number };
@@ -38,12 +39,6 @@ const data = ref<Dashboard | null>(null),
   supportOpen = ref(false),
   auth = useAuthStore();
 const router = useRouter();
-const currency = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
 const maxExpense = computed(() =>
   Math.max(...(data.value?.expenses.by_category.map((x) => +x.total) || [1])),
 );
@@ -51,14 +46,16 @@ onMounted(async () => {
   try {
     if (auth.accessRestricted) return;
     await auth.fetchMe();
-    const d = await api.get<ApiEnvelope<Dashboard>>("/dashboard");
-    data.value = d.data.data;
+    const dashboardResponse =
+      await api.get<ApiEnvelope<Dashboard>>("/dashboard");
+    data.value = dashboardResponse.data.data;
     if (auth.can("vehicles.view")) {
-      const v = await api.get<ApiEnvelope<Vehicle[]>>("/vehicles?per_page=5");
-      vehicles.value = v.data.data;
+      const vehiclesResponse =
+        await api.get<ApiEnvelope<Vehicle[]>>("/vehicles?per_page=5");
+      vehicles.value = vehiclesResponse.data.data;
     }
-  } catch (e) {
-    error.value = errorMessage(e);
+  } catch (errorResponse) {
+    error.value = errorMessage(errorResponse);
   } finally {
     loading.value = false;
   }
@@ -249,16 +246,16 @@ onMounted(async () => {
               <TrendingUp :size="20" />
             </div>
             <strong class="money-total">{{
-              currency.format(data.expenses.year)
+              formatCurrency(data.expenses.year)
             }}</strong>
             <p class="muted">
-              {{ currency.format(data.expenses.month) }} this month
+              {{ formatCurrency(data.expenses.month) }} this month
             </p>
             <div class="expense-bars">
               <div v-for="x in data.expenses.by_category" :key="x.category">
                 <div>
                   <span>{{ x.category }}</span
-                  ><strong>{{ currency.format(+x.total) }}</strong>
+                  ><strong>{{ formatCurrency(x.total) }}</strong>
                 </div>
                 <i
                   ><b
@@ -278,18 +275,3 @@ onMounted(async () => {
     </template>
   </div>
 </template>
-
-<style scoped>
-.spending-card-link {
-  display: block;
-  color: inherit;
-  text-decoration: none;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-}
-
-.spending-card-link:hover {
-  transform: translateY(-2px);
-  border-color: #a9c8c4;
-  box-shadow: 0 10px 26px rgba(14, 28, 49, 0.1);
-}
-</style>

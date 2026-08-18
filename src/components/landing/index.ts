@@ -1,0 +1,11 @@
+export { default as BenefitsSection } from "./BenefitsSection.vue";
+export { default as FaqSection } from "./FaqSection.vue";
+export { default as FeaturesSection } from "./FeaturesSection.vue";
+export { default as FinalCtaSection } from "./FinalCtaSection.vue";
+export { default as HeroSection } from "./HeroSection.vue";
+export { default as HowItWorksSection } from "./HowItWorksSection.vue";
+export { default as LandingFooter } from "./LandingFooter.vue";
+export { default as LandingNavbar } from "./LandingNavbar.vue";
+export { default as PricingSection } from "./PricingSection.vue";
+export { default as ProductPreview } from "./ProductPreview.vue";
+export { default as TargetCustomersSection } from "./TargetCustomersSection.vue";

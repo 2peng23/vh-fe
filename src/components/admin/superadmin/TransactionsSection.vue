@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
-import { ChevronDown, Filter, RotateCcw, ShieldCheck } from "lucide-vue-next";
+import { ChevronDown, Filter, RotateCcw } from "lucide-vue-next";
 import api, { errorMessage } from "../../../api/client";
 import type { ApiEnvelope, PaginationMeta } from "../../../types";
 import type { AdminBusiness, AdminPaymentMethod } from "../../../types/admin";
@@ -12,6 +12,7 @@ import type {
   PaymentReviewPayload,
   ReviewableAdminTransaction,
 } from "./transactions/types";
+import { localDate } from "../../../utils";
 
 const emit = defineEmits<{ openBusiness: [business: AdminBusiness] }>();
 
@@ -89,12 +90,6 @@ async function load() {
   }
 }
 
-// Convert a Date to YYYY-MM-DD using the browser's local timezone.
-function localDate(date: Date) {
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
-}
-
 // Apply the current filter form and return to the first result page.
 function applyFilters() {
   if (filters.date_from && !filters.date_to) {
@@ -106,7 +101,8 @@ function applyFilters() {
   }
 
   if (filters.date_from && filters.date_from === filters.date_to) {
-    activeRange.value = filters.date_from === localDate(new Date()) ? "today" : null;
+    activeRange.value =
+      filters.date_from === localDate(new Date()) ? "today" : null;
   }
 
   if (page.value === 1) load();
@@ -170,7 +166,8 @@ async function loadPaymentProof(transaction: ReviewableAdminTransaction) {
       { responseType: "blob" },
     );
 
-    proofContentType.value = response.headers["content-type"] || response.data?.type || null;
+    proofContentType.value =
+      response.headers["content-type"] || response.data?.type || null;
     proofUrl.value = URL.createObjectURL(response.data);
   } catch (e) {
     error.value = errorMessage(e);
@@ -239,21 +236,6 @@ onBeforeUnmount(revokeProofUrl);
 
 <template>
   <div class="transaction-section">
-    <div class="transaction-section-head">
-      <div>
-        <span class="section-eyebrow">PAYMENT OPERATIONS</span>
-        <h2>Plan transactions</h2>
-        <p>
-          Review owner payments, verify submitted proof, and manage subscription transactions.
-        </p>
-      </div>
-
-      <div class="review-summary" v-if="meta">
-        <ShieldCheck :size="16" />
-        <span><strong>{{ meta.total }}</strong> total transactions</span>
-      </div>
-    </div>
-
     <div class="transaction-report-filters">
       <button
         type="button"
@@ -328,7 +310,9 @@ onBeforeUnmount(revokeProofUrl);
               Payment
               <select v-model="filters.payment_status">
                 <option value="">All payment statuses</option>
-                <option value="pending_verification">Pending verification</option>
+                <option value="pending_verification">
+                  Pending verification
+                </option>
                 <option value="paid">Paid</option>
                 <option value="rejected">Rejected</option>
                 <option value="unpaid">Payment required</option>
@@ -419,222 +403,3 @@ onBeforeUnmount(revokeProofUrl);
     />
   </div>
 </template>
-
-<style scoped>
-.transaction-section {
-  display: grid;
-  gap: 16px;
-}
-
-.transaction-section-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-.section-eyebrow {
-  display: block;
-  margin-bottom: 5px;
-  color: #0f766e;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-}
-
-.transaction-section-head h2 {
-  margin: 0;
-  color: #0f172a;
-  font-size: 22px;
-}
-
-.transaction-section-head p {
-  margin: 6px 0 0;
-  color: #64748b;
-  font-size: 12px;
-}
-
-.review-summary {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 11px;
-  color: #0f766e;
-  background: #f0fdfa;
-  border: 1px solid #ccfbf1;
-  border-radius: 999px;
-  font-size: 10px;
-  white-space: nowrap;
-}
-
-.review-summary strong {
-  font-weight: 900;
-}
-
-.transaction-report-filters {
-  padding: 0;
-  overflow: hidden;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-}
-
-.transaction-report-filter-toggle {
-  width: 100%;
-  padding: 13px 16px;
-  color: #334155;
-  background: #ffffff;
-  border: 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font: inherit;
-  font-size: 11px;
-  font-weight: 750;
-}
-
-.transaction-report-filter-toggle > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.transaction-report-filter-toggle svg {
-  width: 16px;
-  height: 16px;
-  transition: transform 0.22s ease;
-}
-
-.transaction-report-filter-toggle svg.rotated {
-  transform: rotate(180deg);
-}
-
-.transaction-report-filter-content {
-  padding: 15px 16px 17px;
-  background: #f8fafc;
-  border-top: 1px solid #e2e8f0;
-}
-
-.filter-panel-enter-active,
-.filter-panel-leave-active {
-  overflow: hidden;
-  transition:
-    max-height 0.24s ease,
-    opacity 0.18s ease,
-    transform 0.2s ease;
-}
-
-.filter-panel-enter-from,
-.filter-panel-leave-to {
-  max-height: 0;
-  opacity: 0;
-  transform: translateY(-4px);
-}
-
-.filter-panel-enter-to,
-.filter-panel-leave-from {
-  max-height: 520px;
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.quick-date-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin-bottom: 14px;
-}
-
-.transaction-report-filter-fields {
-  display: grid;
-  grid-template-columns:
-    minmax(140px, 180px)
-    minmax(140px, 180px)
-    minmax(160px, 200px)
-    minmax(180px, 220px);
-  gap: 12px;
-  align-items: end;
-}
-
-.transaction-report-filter-fields label {
-  color: #475569;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.transaction-report-filter-fields input,
-.transaction-report-filter-fields select {
-  width: 100%;
-  min-width: 0;
-  min-height: 40px;
-  margin-top: 6px;
-  padding: 9px 10px;
-  color: #0f172a;
-  background: #ffffff;
-  border: 1px solid #dbe3ed;
-  border-radius: 9px;
-  outline: 0;
-  font: inherit;
-  font-size: 10px;
-}
-
-.transaction-report-filter-fields input:focus,
-.transaction-report-filter-fields select:focus {
-  border-color: #0d9488;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.08);
-}
-
-.transaction-report-filter-search {
-  grid-column: span 2;
-}
-
-.transaction-report-filter-actions {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.transaction-report-filter-actions .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  white-space: nowrap;
-}
-
-.transaction-report-filter-actions svg {
-  width: 15px;
-  height: 15px;
-}
-
-@media (max-width: 900px) {
-  .transaction-section-head {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .transaction-report-filter-fields {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .transaction-report-filter-search {
-    grid-column: auto;
-  }
-}
-
-@media (max-width: 560px) {
-  .transaction-report-filter-fields {
-    grid-template-columns: 1fr;
-  }
-
-  .transaction-report-filter-actions {
-    flex-direction: column;
-  }
-
-  .transaction-report-filter-actions .btn {
-    width: 100%;
-  }
-}
-</style>

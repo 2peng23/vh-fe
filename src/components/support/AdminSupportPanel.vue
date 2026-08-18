@@ -3,7 +3,7 @@ import { nextTick, ref, watch } from "vue";
 import { Download, MessageCircle, Paperclip, Pencil, Plus, Send, X } from "lucide-vue-next";
 import StatusBadge from "../StatusBadge.vue";
 import type { SupportConversation, SupportMessage, SupportTemplate } from "../../types/support";
-import { formatDateTime } from "../../utils/date";
+import { formatDateTime } from "../../utils";
 
 const props = defineProps<{
   conversations: SupportConversation[];

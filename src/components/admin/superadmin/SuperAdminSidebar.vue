@@ -46,7 +46,7 @@ const navigation: Array<{ id: AdminTab; label: string; icon: typeof LayoutDashbo
 <template>
   <aside class="superadmin-sidebar" :class="{ open }">
     <div class="superadmin-sidebar-brand">
-      <AppLogo />
+      <AppLogo theme="dark" />
       <button class="icon-btn superadmin-sidebar-close" aria-label="Close navigation" @click="emit('close')">
         <X />
       </button>

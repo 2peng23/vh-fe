@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CircleHelp, X } from "lucide-vue-next";
-import { formatDate } from "../../../utils/date";
+import { formatDate } from "../../../utils";
 import {
   fieldHelp,
   fieldLabel,

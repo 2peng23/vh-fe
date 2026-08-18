@@ -9,7 +9,7 @@ import LoadingState from "../components/LoadingState.vue";
 import EmptyState from "../components/EmptyState.vue";
 import StatusBadge from "../components/StatusBadge.vue";
 import PaginationControls from "../components/PaginationControls.vue";
-import { formatDate } from "../utils/date";
+import { formatDate } from "../utils";
 import { useAuthStore } from "../stores/auth";
 
 type Operation = "maintenance" | "issues" | "documents";

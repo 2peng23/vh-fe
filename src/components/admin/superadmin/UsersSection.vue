@@ -6,7 +6,7 @@ import api, { errorMessage } from "../../../api/client";
 import { useAuthStore } from "../../../stores/auth";
 import type { ApiEnvelope, PaginationMeta } from "../../../types";
 import type { AdminBusiness, AdminUser } from "../../../types/admin";
-import { formatDate } from "../../../utils/date";
+import { formatDate } from "../../../utils";
 import EmptyState from "../../EmptyState.vue";
 import LoadingState from "../../LoadingState.vue";
 import PaginationControls from "../../PaginationControls.vue";
@@ -76,7 +76,7 @@ async function openUserDashboard(userId: number) {
   error.value = "";
   try {
     await auth.impersonate(userId);
-    await router.push("/");
+    await router.push("/dashboard");
   } catch (e) {
     error.value = errorMessage(e);
   } finally {

@@ -7,7 +7,7 @@ import PageHeader from "../components/PageHeader.vue";
 import LoadingState from "../components/LoadingState.vue";
 import EmptyState from "../components/EmptyState.vue";
 import PaginationControls from "../components/PaginationControls.vue";
-import { formatDateTime } from "../utils/date";
+import { formatDateTime } from "../utils";
 import { useAuthStore } from "../stores/auth";
 const auth = useAuthStore(),
   items = ref<any[]>([]),

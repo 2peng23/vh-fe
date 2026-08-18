@@ -2,7 +2,7 @@
 import { FileText, Gauge, ReceiptText, Wrench } from "lucide-vue-next";
 import type { Vehicle } from "../../../types";
 import EmptyState from "../../EmptyState.vue";
-import { formatDate } from "../../../utils/date";
+import { formatCurrency, formatDate } from "../../../utils";
 
 defineProps<{
   vehicle: Vehicle;
@@ -12,7 +12,6 @@ defineProps<{
   canViewSchedules: boolean;
   canViewDocuments: boolean;
   canViewExpenses: boolean;
-  money: Intl.NumberFormat;
 }>();
 
 const emit = defineEmits<{
@@ -57,7 +56,7 @@ const emit = defineEmits<{
       <button v-if="canViewExpenses" type="button" @click="emit('selectTab', 'expenses')">
         <span><ReceiptText /></span>
         <small>EXPENSES</small>
-        <strong>{{ money.format(Number(vehicle.expenses_sum_amount || 0)) }}</strong>
+        <strong>{{ formatCurrency(vehicle.expenses_sum_amount) }}</strong>
       </button>
     </div>
 
@@ -80,7 +79,7 @@ const emit = defineEmits<{
             <dd>
               {{
                 vehicle.acquisition_cost
-                  ? `₱${Number(vehicle.acquisition_cost).toLocaleString()}`
+                  ? formatCurrency(vehicle.acquisition_cost)
                   : "—"
               }}
             </dd>

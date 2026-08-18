@@ -63,31 +63,3 @@ const emit = defineEmits<{
   </div>
 </template>
 
-<style scoped>
-.document-preview-modal {
-  width: min(800px, calc(100vw - 48px));
-  max-height: 80vh;
-}
-
-.document-preview-body {
-  max-height: calc(80vh - 90px);
-  overflow: hidden;
-  overflow-y: auto;
-}
-
-.document-preview-body img {
-  display: block;
-  max-width: 100%;
-  max-height: calc(80vh - 120px);
-  width: auto;
-  height: auto;
-  margin: 0 auto;
-  object-fit: contain;
-}
-
-.document-preview-body iframe {
-  width: 100%;
-  height: 65vh;
-  border: 0;
-}
-</style>

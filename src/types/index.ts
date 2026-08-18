@@ -9,6 +9,7 @@ export interface Business {
   subscription_status: string;
   status: "active" | "inactive";
   vehicle_limit_override: number | null;
+  plan_started_at: string | null;
   plan_ends_at: string | null;
   subscription: {
     tier: "trial" | "starter" | "business" | "enterprise";
@@ -21,7 +22,9 @@ export interface Business {
     vehicles_remaining: number;
     vehicle_limit_reached: boolean;
     usage_percent: number;
+    plan_started_at: string | null;
     plan_ends_at: string | null;
+    remaining_days: number;
     plan_ended: boolean;
   };
 }
@@ -67,4 +70,15 @@ export interface ApiEnvelope<T> {
   data: T;
   meta?: PaginationMeta;
   errors?: Record<string, string[]>;
+}
+
+export interface PublicPlanOffering {
+  id: number;
+  plan: "trial" | "starter" | "business" | "enterprise" | string;
+  name: string;
+  duration_months: number;
+  duration_days?: number | null;
+  price: number | string;
+  vehicle_limit: number;
+  details?: string | null;
 }

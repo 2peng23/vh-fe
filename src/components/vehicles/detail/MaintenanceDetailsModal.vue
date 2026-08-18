@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { X } from "lucide-vue-next";
-import { formatDate } from "../../../utils/date";
+import { formatCurrency, formatDate } from "../../../utils";
 import { prettyRecordValue } from "../../../utils/vehicles/vehicleRecordTable";
 
 defineProps<{
   maintenance: any | null;
-  money: Intl.NumberFormat;
 }>();
 
 const emit = defineEmits<{ close: [] }>();
@@ -46,12 +45,12 @@ const emit = defineEmits<{ close: [] }>();
             }}
           </dd>
         </div>
-        <div><dt>Labor cost</dt><dd>{{ money.format(Number(maintenance.labor_cost || 0)) }}</dd></div>
-        <div><dt>Parts cost</dt><dd>{{ money.format(Number(maintenance.parts_cost || 0)) }}</dd></div>
-        <div><dt>Other cost</dt><dd>{{ money.format(Number(maintenance.other_cost || 0)) }}</dd></div>
+        <div><dt>Labor cost</dt><dd>{{ formatCurrency(maintenance.labor_cost) }}</dd></div>
+        <div><dt>Parts cost</dt><dd>{{ formatCurrency(maintenance.parts_cost) }}</dd></div>
+        <div><dt>Other cost</dt><dd>{{ formatCurrency(maintenance.other_cost) }}</dd></div>
         <div class="maintenance-total">
           <dt>Total cost</dt>
-          <dd>{{ money.format(Number(maintenance.total_cost || 0)) }}</dd>
+          <dd>{{ formatCurrency(maintenance.total_cost) }}</dd>
         </div>
         <div class="full"><dt>Description</dt><dd>{{ maintenance.description || "—" }}</dd></div>
         <div class="full"><dt>Notes</dt><dd>{{ maintenance.notes || "—" }}</dd></div>
@@ -76,8 +75,8 @@ const emit = defineEmits<{ close: [] }>();
                 <td>{{ part.part_name }}</td>
                 <td>{{ part.part_number || "—" }}</td>
                 <td>{{ part.quantity }}</td>
-                <td>{{ money.format(Number(part.unit_cost)) }}</td>
-                <td>{{ money.format(Number(part.total_cost)) }}</td>
+                <td>{{ formatCurrency(part.unit_cost) }}</td>
+                <td>{{ formatCurrency(part.total_cost) }}</td>
                 <td>{{ part.supplier || "—" }}</td>
               </tr>
             </tbody>

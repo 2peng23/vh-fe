@@ -18,7 +18,7 @@ import EmptyState from "../components/EmptyState.vue";
 import StatusBadge from "../components/StatusBadge.vue";
 import PaginationControls from "../components/PaginationControls.vue";
 import SearchableSelect from "../components/SearchableSelect.vue";
-import { formatDate } from "../utils/date";
+import { formatDate } from "../utils";
 import { useAuthStore } from "../stores/auth";
 const auth = useAuthStore();
 const route = useRoute();

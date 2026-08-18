@@ -1,6 +1,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api, { errorMessage } from "../../../api/client";
+import { useAuthStore } from "../../../stores/auth";
 import type { ApiEnvelope, PaginationMeta } from "../../../types";
 import type {
   PaymentMethod,
@@ -9,12 +10,14 @@ import type {
   PlanTransaction,
   PurchaseForm,
   SelectedOffering,
+  SubscriptionPreview,
 } from "../types";
 import { buildPlanGroups } from "../utils";
 
 export function usePlanTransactions() {
   const route = useRoute();
   const router = useRouter();
+  const auth = useAuthStore();
 
   const transactions = ref<PlanTransaction[]>([]);
   const selectedTransaction = ref<PlanTransaction | null>(null);
@@ -33,6 +36,8 @@ export function usePlanTransactions() {
   const offerings = ref<PlanOffering[]>([]);
   const paymentMethods = ref<PaymentMethod[]>([]);
   const purchasing = ref(false);
+  const preview = ref<SubscriptionPreview | null>(null);
+  const loadingPreview = ref(false);
 
   const purchaseForm = ref<PurchaseForm>({
     subscription_plan_offering_id: "",
@@ -65,6 +70,8 @@ export function usePlanTransactions() {
       (method) => String(method.id) === purchaseForm.value.payment_method_id,
     ),
   );
+
+  const currentSubscription = computed(() => auth.user?.business?.subscription);
 
   function replaceTransaction(updated: PlanTransaction) {
     const index = transactions.value.findIndex((item) => item.id === updated.id);
@@ -109,6 +116,12 @@ export function usePlanTransactions() {
         await viewTransaction({ id: linkedTransactionId });
       }
 
+      const linkedPaymentId = Number(route.query.pay);
+
+      if (linkedPaymentId && paymentTransaction.value?.id !== linkedPaymentId) {
+        await openPayment({ id: linkedPaymentId } as PlanTransaction);
+      }
+
       if (route.query.purchase === "1" && !purchaseOpen.value) {
         await openPurchase();
       }
@@ -143,11 +156,38 @@ export function usePlanTransactions() {
     };
   }
 
+  async function loadPreview() {
+    if (!purchaseForm.value.subscription_plan_offering_id) {
+      preview.value = null;
+      return;
+    }
+
+    loadingPreview.value = true;
+
+    try {
+      const { data } = await api.post<ApiEnvelope<SubscriptionPreview>>(
+        "/subscription/preview",
+        {
+          subscription_plan_offering_id:
+            purchaseForm.value.subscription_plan_offering_id,
+        },
+      );
+
+      preview.value = data.data;
+    } catch (exception) {
+      preview.value = null;
+      error.value = errorMessage(exception);
+    } finally {
+      loadingPreview.value = false;
+    }
+  }
+
   async function openPurchase() {
     error.value = "";
 
     try {
       await ensurePurchaseOptionsLoaded();
+      await loadPreview();
       purchaseOpen.value = true;
 
       if (route.query.purchase !== "1") {
@@ -309,6 +349,15 @@ export function usePlanTransactions() {
 
   watch(page, loadTransactions);
 
+  watch(
+    () => purchaseForm.value.subscription_plan_offering_id,
+    () => {
+      if (purchaseOpen.value) {
+        void loadPreview();
+      }
+    },
+  );
+
   watch(perPage, () => {
     if (page.value !== 1) {
       page.value = 1;
@@ -333,6 +382,9 @@ export function usePlanTransactions() {
     purchaseOpen,
     paymentMethods,
     purchasing,
+    preview,
+    loadingPreview,
+    currentSubscription,
     purchaseForm,
     planGroups,
     selectedOffering,

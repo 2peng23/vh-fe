@@ -7,6 +7,7 @@ import type { AdminPlanOffering, ValidationBag } from "../../../types/admin";
 import EmptyState from "../../EmptyState.vue";
 import LoadingState from "../../LoadingState.vue";
 import StatusBadge from "../../StatusBadge.vue";
+import { formatCurrency } from "../../../utils";
 
 const rows = ref<AdminPlanOffering[]>([]);
 const loading = ref(true);
@@ -15,7 +16,6 @@ const error = ref("");
 const modalOpen = ref(false);
 const editing = ref<AdminPlanOffering | null>(null);
 const formErrors = ref<ValidationBag>({});
-const currency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
 const defaultForm = () => ({ plan: "starter", name: "Starter", duration_months: 1, price: "", vehicle_limit: 5, details: "", is_active: true });
 const form = reactive(defaultForm());
 
@@ -76,7 +76,7 @@ onMounted(load);
           <tr v-for="offering in rows" :key="offering.id">
             <td><strong>{{ offering.name }}</strong><small class="cell-small capitalize">{{ offering.plan }}</small></td>
             <td>{{ offering.duration_months === 12 ? "1 year" : `${offering.duration_months} month${offering.duration_months > 1 ? "s" : ""}` }}</td>
-            <td>{{ currency.format(Number(offering.price)) }}</td>
+            <td>{{ formatCurrency(offering.price) }}</td>
             <td>{{ offering.vehicle_limit }}</td>
             <td>{{ offering.details || "—" }}</td>
             <td><StatusBadge :status="offering.is_active ? 'Active' : 'Inactive'" /></td>

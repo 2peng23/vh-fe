@@ -4,14 +4,10 @@ import type {
   PlanGroup,
   PlanOffering,
 } from "./types";
-
-const currency = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-});
+import { formatCurrency } from "../../utils";
 
 export function formatPlanCurrency(value: number | string): string {
-  return currency.format(Number(value));
+  return formatCurrency(value);
 }
 
 export function billingPeriodLabel(months: number): string {
@@ -27,6 +23,16 @@ export function billingPeriodShortLabel(months: number): string {
   if (months === 12) return "/ year";
 
   return `/ ${months} months`;
+}
+
+export function formatPlanDate(value?: string | null): string {
+  if (!value) return "Not set";
+
+  return new Intl.DateTimeFormat("en-PH", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 export function planClass(name: string): string {

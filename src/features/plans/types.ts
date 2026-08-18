@@ -1,5 +1,6 @@
 export type PlanOffering = {
   id: number;
+  plan: string;
   name: string;
   vehicle_limit: number;
   details: string;
@@ -50,6 +51,10 @@ export type PaymentStatus =
 export type PlanTransaction = {
   id: number;
   reference: string;
+  transaction_type?: "purchase" | "upgrade" | "renewal" | "downgrade" | string;
+  from_plan?: string | null;
+  original_amount?: number | string;
+  credit_amount?: number | string;
   plan: string;
   amount: number | string;
   payment_method: string;
@@ -79,4 +84,22 @@ export type QrPreview = {
 export type PaymentSubmissionPayload = {
   payment_reference: string;
   proof: File | null;
+};
+
+export type SubscriptionPreview = {
+  type: "purchase" | "upgrade" | "renewal" | "downgrade";
+  from_plan: string;
+  to_plan: string;
+  plan: string;
+  remaining_days: number;
+  original_price: number | string;
+  credit_amount: number | string;
+  amount_due: number | string;
+  current_ends_at: string | null;
+  new_starts_at: string;
+  new_ends_at: string;
+  effective: string;
+  effective_at: string | null;
+  vehicle_limit: number;
+  duration_months: number;
 };

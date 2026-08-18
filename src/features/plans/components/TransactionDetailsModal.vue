@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { X } from "lucide-vue-next";
 import StatusBadge from "../../../components/StatusBadge.vue";
-import { formatDate, formatDateTime } from "../../../utils/date";
+import { formatDate, formatDateTime } from "../../../utils";
 import type { PlanTransaction } from "../types";
 import { formatPlanCurrency } from "../utils";
 

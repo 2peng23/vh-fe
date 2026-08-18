@@ -20,10 +20,12 @@ import {
   ShieldCheck,
   MessageCircle,
   CreditCard,
+  CircleUserRound,
+  BadgeCheck,
 } from "lucide-vue-next";
 import AppLogo from "../components/AppLogo.vue";
 import SupportChatView from "../views/SupportChatView.vue";
-import api, { errorMessage } from "../api/client";
+import api from "../api/client";
 import { useAuthStore } from "../stores/auth";
 const auth = useAuthStore(),
   router = useRouter(),
@@ -37,7 +39,7 @@ const auth = useAuthStore(),
   vehicleResults = ref<any[]>([]),
   driverResults = ref<any[]>([]);
 const nav = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, permission: "dashboard.view" },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "dashboard.view" },
   { to: "/vehicles", label: "Vehicles", icon: CarFront, permission: "vehicles.view" },
   { to: "/drivers", label: "Drivers", icon: Users, permission: "drivers.view" },
   { to: "/assignments", label: "Assignments", icon: ArrowLeftRight, permission: "assignments.view" },
@@ -95,10 +97,9 @@ async function runGlobalSearch() {
     if (term !== globalSearch.value.trim()) return;
     vehicleResults.value = vehicles?.data.data || [];
     driverResults.value = drivers?.data.data || [];
-  } catch (e) {
+  } catch {
     vehicleResults.value = [];
     driverResults.value = [];
-    console.error(errorMessage(e));
   } finally {
     searchLoading.value = false;
   }
@@ -127,7 +128,7 @@ async function logout() {
     await auth.logout();
   } finally {
     profileOpen.value = false;
-    await router.replace("/login");
+    await router.replace("/");
   }
 }
 async function returnToSuperAdmin() {
@@ -139,14 +140,14 @@ async function returnToSuperAdmin() {
   <div class="app-shell">
     <aside class="sidebar" :class="{ open }">
       <div class="sidebar-top">
-        <AppLogo /><button class="icon-btn mobile-only" @click="open = false">
+        <AppLogo theme="dark"/><button class="icon-btn mobile-only" @click="open = false">
           ×
         </button>
       </div>
       <nav>
         <p class="nav-label">Workspace</p>
         <template v-for="item in nav" :key="item.to">
-          <span v-if="auth.can(item.permission) && auth.accessRestricted" class="sidebar-nav-item nav-disabled" :class="{ 'restricted-current': item.to === '/' }" aria-disabled="true"><component :is="item.icon" :size="19" /><span>{{ item.label }}</span></span>
+          <span v-if="auth.can(item.permission) && auth.accessRestricted" class="sidebar-nav-item nav-disabled" :class="{ 'restricted-current': item.to === '/dashboard' }" aria-disabled="true"><component :is="item.icon" :size="19" /><span>{{ item.label }}</span></span>
           <RouterLink v-else-if="auth.can(item.permission)" :to="item.to" @click="open = false"><component :is="item.icon" :size="19" /><span>{{ item.label }}</span></RouterLink>
         </template>
         <p class="nav-label">Operations</p>
@@ -154,6 +155,8 @@ async function returnToSuperAdmin() {
           <span v-if="auth.can(item.permission) && auth.accessRestricted" class="sidebar-nav-item nav-disabled" aria-disabled="true"><component :is="item.icon" :size="19" /><span>{{ item.label }}</span></span>
           <RouterLink v-else-if="auth.can(item.permission)" :to="item.to" @click="open = false"><component :is="item.icon" :size="19" /><span>{{ item.label }}</span></RouterLink>
         </template>
+        <p v-if="auth.isOwner" class="nav-label">Account</p>
+        <RouterLink v-if="auth.isOwner" to="/subscription" @click="open = false"><BadgeCheck :size="19" /><span>Subscription</span></RouterLink>
         <RouterLink v-if="auth.isOwner" to="/plan-transactions" @click="open = false"><CreditCard :size="19" /><span>Plan transactions</span></RouterLink>
         <button v-if="auth.isOwner" type="button" class="sidebar-support-button" :class="{ unread: supportUnread > 0 }" @click="supportOpen = true; open = false"><MessageCircle :size="19" /><span>Support</span><em v-if="supportUnread">{{ supportUnread > 99 ? '99+' : supportUnread }}</em></button>
       </nav>
@@ -232,6 +235,7 @@ async function returnToSuperAdmin() {
               ><ChevronDown :size="15" />
             </button>
             <div class="profile-menu" v-if="profileOpen">
+              <RouterLink to="/profile" @click="profileOpen = false"><CircleUserRound :size="16" />Profile</RouterLink>
               <button @click="logout"><LogOut :size="16" />Sign out</button>
             </div>
           </div>

@@ -23,7 +23,7 @@ async function submit() {
   error.value = "";
   try {
     await auth.login(email.value, password.value);
-    router.push(auth.isSuperAdmin ? "/superadmin" : "/");
+    router.push(auth.isSuperAdmin ? "/superadmin" : "/dashboard");
   } catch (e) {
     if ((e as any)?.response?.data?.code === "BUSINESS_INACTIVE") {
       router.push("/business-disabled");
@@ -34,7 +34,7 @@ async function submit() {
       return;
     }
     if ((e as any)?.response?.data?.code === "PLAN_ENDED") {
-      router.push("/");
+      router.push("/dashboard");
       return;
     }
     error.value = errorMessage(e);
@@ -42,80 +42,140 @@ async function submit() {
 }
 </script>
 <template>
-  <div class="auth-page">
-    <section class="auth-panel">
-      <div class="auth-form-wrap">
+  <div
+    class="grid min-h-screen grid-cols-1 bg-white lg:grid-cols-2 [&_.brand_strong]:text-slate-950"
+  >
+    <section class="grid place-items-center px-5 py-8 sm:p-10">
+      <div class="w-full max-w-[390px]">
         <AppLogo />
-        <div class="auth-heading">
-          <span class="eyebrow">WELCOME BACK</span>
-          <h1>Keep your vehicle moving.</h1>
-          <p>
+        <!-- <RouterLink
+          class="mt-6 inline-flex items-center text-xs font-bold text-slate-500 transition hover:text-teal-700"
+          to="/"
+        >
+          &larr; Back to Vehicle Hub
+        </RouterLink> -->
+        <div class="my-12 mb-6 lg:my-16 lg:mb-8">
+          <span
+            class="text-[10px] font-bold uppercase tracking-[1.5px] text-teal-700"
+            >WELCOME BACK</span
+          >
+          <h1
+            class="my-2 text-[34px] font-extrabold leading-tight text-slate-950"
+          >
+            Keep your vehicle moving.
+          </h1>
+          <p class="text-sm leading-6 text-slate-500">
             Sign in to manage vehicles, maintenance, and costs in one place.
           </p>
         </div>
-        <form @submit.prevent="submit">
-          <div class="alert error" v-if="error">{{ error }}</div>
-          <label
-            >Email address<input
+        <form class="flex flex-col gap-4 mb-2" @submit.prevent="submit">
+          <div
+            v-if="error"
+            class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"
+          >
+            {{ error }}
+          </div>
+          <label class="grid gap-2 text-xs font-bold text-slate-700">
+            Email address
+            <input
               v-model="email"
               type="email"
               required
               autocomplete="email"
-              placeholder="you@company.com" /></label
-          ><label
-            >Password
-            <div class="password-field">
+              placeholder="you@company.com"
+            />
+          </label>
+          <label class="grid gap-2 text-xs font-bold text-slate-700">
+            Password
+            <div class="relative">
               <input
                 v-model="password"
                 :type="show ? 'text' : 'password'"
+                class="w-full pr-11"
                 required
                 autocomplete="current-password"
-              /><button type="button" @click="show = !show">
-                <EyeOff v-if="show" /><Eye v-else />
-              </button></div
-          ></label>
-          <div class="form-row">
-            <label class="check"><input type="checkbox" /> Remember me</label
-            ><a href="#">Forgot password?</a>
+              />
+              <button
+                class="absolute right-1 top-1 grid h-9 w-9 place-items-center border-0 bg-transparent text-slate-500"
+                type="button"
+                @click="show = !show"
+              >
+                <EyeOff v-if="show" class="h-[18px] w-[18px]" /><Eye
+                  v-else
+                  class="h-[18px] w-[18px]"
+                />
+              </button>
+            </div>
+          </label>
+          <div class="flex justify-between text-[11px]">
+            <label class="flex flex-row items-center gap-2 text-slate-600"
+              ><input type="checkbox" /> Remember me</label
+            >
+            <a class="font-bold text-teal-700" href="#">Forgot password?</a>
           </div>
-          <button class="btn btn-primary btn-block" :disabled="auth.loading">
+          <button
+            class="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-teal-700 px-4 text-sm font-extrabold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+            :disabled="auth.loading"
+          >
             <span v-if="auth.loading" class="spinner small"></span
             >{{ auth.loading ? "Signing in…" : "Sign in to Vehicle Hub" }}
           </button>
         </form>
-        <p class="auth-switch">
+        <p class="m-6 text-center text-xs text-slate-600">
           New to Vehicle Hub?
-          <RouterLink to="/register">Create an account</RouterLink>
+          <RouterLink class="font-bold text-teal-700" to="/register"
+            >Create an account</RouterLink
+          >
         </p>
-        <small class="auth-legal"
+        <small class="block text-center text-slate-400"
           >By continuing, you agree to our Terms and Privacy Policy.</small
         >
         <button
           type="button"
-          class="login-support-button"
+          class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-extrabold text-slate-700 shadow-sm transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700"
           @click="supportOpen = true"
         >
-          <MessageCircle />Contact support
+          <MessageCircle class="h-[17px] w-[17px]" />Contact support
         </button>
       </div>
     </section>
-    <section class="auth-showcase">
-      <div class="showcase-content">
-        <span class="showcase-tag"
+    <section
+      class="relative hidden place-items-center overflow-hidden bg-slate-950 p-10 text-white lg:grid xl:p-16"
+    >
+      <div class="relative z-[2] max-w-xl">
+        <span
+          class="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-[9px] tracking-[1.3px] text-teal-200"
           ><ShieldCheck :size="16" /> BUILT FOR VEHICLE TEAMS</span
         >
-        <h2>Every vehicle.<br /><em>Always accounted for.</em></h2>
-        <p>
+        <h2
+          class="my-7 text-[46px] font-extrabold leading-tight tracking-[-1.5px] xl:text-5xl"
+        >
+          Every vehicle.<br /><em class="not-italic text-teal-300"
+            >Always accounted for.</em
+          >
+        </h2>
+        <p class="leading-8 text-slate-400">
           One reliable workspace for maintenance, documents, expenses, and the
           people who keep your business moving.
         </p>
-        <div class="showcase-points">
-          <span><CheckCircle2 />Never miss a renewal</span
-          ><span><CheckCircle2 />Know every vehicle cost</span
-          ><span><CheckCircle2 />Keep maintenance on schedule</span>
+        <div class="mt-8 flex flex-col gap-3">
+          <span class="flex items-center gap-2 text-[13px] text-slate-200"
+            ><CheckCircle2 class="h-[18px] w-[18px] text-teal-300" />Never miss
+            a renewal</span
+          >
+          <span class="flex items-center gap-2 text-[13px] text-slate-200"
+            ><CheckCircle2 class="h-[18px] w-[18px] text-teal-300" />Know every
+            vehicle cost</span
+          >
+          <span class="flex items-center gap-2 text-[13px] text-slate-200"
+            ><CheckCircle2 class="h-[18px] w-[18px] text-teal-300" />Keep
+            maintenance on schedule</span
+          >
         </div>
       </div>
-      <div class="road-lines"></div>
+      <div
+        class="absolute inset-0 bg-[linear-gradient(120deg,transparent_58%,rgba(34,172,157,0.07)_58%,rgba(34,172,157,0.07)_59%,transparent_59%),linear-gradient(60deg,transparent_68%,rgba(255,255,255,0.025)_68%,rgba(255,255,255,0.025)_69%,transparent_69%)]"
+      ></div>
     </section>
     <div
       v-if="supportOpen"

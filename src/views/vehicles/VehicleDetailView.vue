@@ -38,11 +38,6 @@ const error = ref("");
 const tab = ref("overview");
 const rowsPage = ref(1);
 
-const money = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-});
-
 async function loadVehicle() {
   try {
     const { data } = await api.get<ApiEnvelope<Vehicle>>(`/vehicles/${vehicleId}`);
@@ -276,7 +271,6 @@ onMounted(initializeView);
         :can-view-schedules="auth.can('schedules.view')"
         :can-view-documents="auth.can('documents.view')"
         :can-view-expenses="auth.can('expenses.view')"
-        :money="money"
         @select-tab="tab = $event"
       />
 
@@ -365,14 +359,12 @@ onMounted(initializeView);
 
       <ExpenseDetailsModal
         :expense="viewingExpense"
-        :money="money"
         @close="viewingExpense = null"
         @navigate-source="navigateToExpenseSource"
       />
 
       <MaintenanceDetailsModal
         :maintenance="viewingMaintenance"
-        :money="money"
         @close="viewingMaintenance = null"
       />
 

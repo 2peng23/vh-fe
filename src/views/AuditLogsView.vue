@@ -23,13 +23,7 @@ import PageHeader from "../components/PageHeader.vue";
 import LoadingState from "../components/LoadingState.vue";
 import EmptyState from "../components/EmptyState.vue";
 import PaginationControls from "../components/PaginationControls.vue";
-import { formatDate, formatDateTime } from "../utils/date";
-
-/*
-|--------------------------------------------------------------------------
-| Types
-|--------------------------------------------------------------------------
-*/
+import { formatDate, formatDateTime, localDate } from "../utils";
 
 type AuditLog = {
   id: number;
@@ -48,12 +42,6 @@ type AuditLog = {
   } | null;
 };
 
-/*
-|--------------------------------------------------------------------------
-| Audit State
-|--------------------------------------------------------------------------
-*/
-
 const rows = ref<AuditLog[]>([]);
 const meta = ref<PaginationMeta>();
 
@@ -64,12 +52,6 @@ const page = ref(1);
 const perPage = ref(20);
 
 const selected = ref<AuditLog | null>(null);
-
-/*
-|--------------------------------------------------------------------------
-| Filter State
-|--------------------------------------------------------------------------
-*/
 
 const filtersExpanded = ref(false);
 
@@ -83,12 +65,6 @@ const filters = reactive({
   to: "",
 });
 
-/*
-|--------------------------------------------------------------------------
-| Filter Options
-|--------------------------------------------------------------------------
-*/
-
 const options = ref<{
   actions: string[];
 
@@ -100,12 +76,6 @@ const options = ref<{
   actions: [],
   entities: [],
 });
-
-/*
-|--------------------------------------------------------------------------
-| Document Preview
-|--------------------------------------------------------------------------
-*/
 
 const documentPreviewUrl = ref("");
 const documentPreviewOpen = ref(false);
@@ -124,24 +94,6 @@ const documentPreviewIsImage = computed(
     /\.(?:jpe?g|png|gif|webp)$/i.test(documentPreviewName.value),
 );
 
-/*
-|--------------------------------------------------------------------------
-| Date Helpers
-|--------------------------------------------------------------------------
-*/
-
-function localDate(date: Date) {
-  const offset = date.getTimezoneOffset() * 60_000;
-
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
-}
-
-/*
-|--------------------------------------------------------------------------
-| Request Params
-|--------------------------------------------------------------------------
-*/
-
 function params() {
   return {
     ...filters,
@@ -149,12 +101,6 @@ function params() {
     per_page: perPage.value,
   };
 }
-
-/*
-|--------------------------------------------------------------------------
-| Load Audit Logs
-|--------------------------------------------------------------------------
-*/
 
 async function load() {
   loading.value = true;
@@ -173,12 +119,6 @@ async function load() {
     loading.value = false;
   }
 }
-
-/*
-|--------------------------------------------------------------------------
-| Apply Filters
-|--------------------------------------------------------------------------
-*/
 
 function applyFilters() {
   if (filters.from && !filters.to) {
@@ -200,12 +140,6 @@ function applyFilters() {
   }
 }
 
-/*
-|--------------------------------------------------------------------------
-| Reset Filters
-|--------------------------------------------------------------------------
-*/
-
 function clearFilters() {
   Object.assign(filters, {
     search: "",
@@ -224,12 +158,6 @@ function clearFilters() {
     page.value = 1;
   }
 }
-
-/*
-|--------------------------------------------------------------------------
-| Quick Date Ranges
-|--------------------------------------------------------------------------
-*/
 
 function setDateRange(range: "today" | "week" | "month" | "all") {
   const end = new Date();
@@ -952,412 +880,3 @@ onBeforeUnmount(closeDocumentPreview);
     </div>
   </div>
 </template>
-
-<style scoped>
-/*
-|--------------------------------------------------------------------------
-| REPORT FILTER PANEL
-|--------------------------------------------------------------------------
-|
-| Audit deliberately uses the same report-* classes so it has the
-| exact same visual treatment as the Reports page.
-|--------------------------------------------------------------------------
-*/
-
-.report-filters {
-  width: 100%;
-  padding: 0;
-  overflow: hidden;
-}
-
-/*
-|--------------------------------------------------------------------------
-| Filter Toggle
-|--------------------------------------------------------------------------
-*/
-
-.report-filter-toggle {
-  width: 100%;
-
-  padding: 14px 18px;
-
-  border: 0;
-
-  background: transparent;
-
-  color: #24324a;
-
-  font: inherit;
-  font-weight: 700;
-
-  cursor: pointer;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.report-filter-toggle > span {
-  display: inline-flex;
-
-  align-items: center;
-
-  gap: 9px;
-}
-
-.report-filter-toggle svg {
-  width: 18px;
-  height: 18px;
-
-  transition: transform 0.22s ease;
-}
-
-.report-filter-toggle svg.rotated {
-  transform: rotate(180deg);
-}
-
-/*
-|--------------------------------------------------------------------------
-| Filter Content
-|--------------------------------------------------------------------------
-*/
-
-.report-filter-content {
-  padding: 16px 18px 18px;
-
-  border-top: 1px solid #e3e8ee;
-}
-
-/*
-|--------------------------------------------------------------------------
-| Collapse / Expand
-|--------------------------------------------------------------------------
-*/
-
-.filter-panel-enter-active,
-.filter-panel-leave-active {
-  overflow: hidden;
-
-  transition:
-    max-height 0.24s ease,
-    opacity 0.18s ease,
-    transform 0.2s ease;
-}
-
-.filter-panel-enter-from,
-.filter-panel-leave-to {
-  max-height: 0;
-
-  opacity: 0;
-
-  transform: translateY(-4px);
-}
-
-.filter-panel-enter-to,
-.filter-panel-leave-from {
-  max-height: 500px;
-
-  opacity: 1;
-
-  transform: translateY(0);
-}
-
-/*
-|--------------------------------------------------------------------------
-| Quick Date Filters
-|--------------------------------------------------------------------------
-*/
-
-.quick-date-filters {
-  display: flex;
-
-  flex-wrap: wrap;
-
-  gap: 7px;
-
-  margin-bottom: 14px;
-}
-
-/*
-|--------------------------------------------------------------------------
-| IMPORTANT
-|--------------------------------------------------------------------------
-|
-| These are the exact Report filter button dimensions.
-|--------------------------------------------------------------------------
-*/
-
-.filter-chip {
-  appearance: none;
-
-  display: inline-flex;
-
-  align-items: center;
-  justify-content: center;
-
-  min-height: 36px;
-
-  padding: 7px 14px;
-
-  border: 1px solid #d9e0e6;
-
-  border-radius: 999px;
-
-  background: #fff;
-
-  color: #475569;
-
-  font: inherit;
-
-  font-size: 13px;
-
-  font-weight: 600;
-
-  cursor: pointer;
-
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.filter-chip:hover {
-  border-color: var(--teal);
-
-  color: var(--teal-dark);
-}
-
-.filter-chip.active {
-  border-color: var(--teal);
-
-  background: var(--teal-soft);
-
-  color: var(--teal-dark);
-}
-
-/*
-|--------------------------------------------------------------------------
-| FILTER GRID
-|--------------------------------------------------------------------------
-|
-| Report:
-|
-| From       = max 180px
-| To         = max 180px
-| Category   = max 210px
-| Vehicle    = remaining width
-|
-| Audit:
-|
-| From       = SAME 180px
-| To         = SAME 180px
-| Action     = SAME 210px
-| Entity     = SAME 210px
-| Search     = remaining width
-|
-|--------------------------------------------------------------------------
-*/
-
-.audit-filter-fields {
-  display: grid;
-
-  grid-template-columns:
-    minmax(140px, 180px)
-    minmax(140px, 180px)
-    minmax(170px, 210px)
-    minmax(170px, 210px)
-    minmax(180px, 1fr);
-
-  gap: 12px;
-
-  align-items: end;
-}
-
-/*
-|--------------------------------------------------------------------------
-| EXACT REPORT LABEL SIZE
-|--------------------------------------------------------------------------
-*/
-
-.report-filter-fields label {
-  min-width: 0;
-
-  font-size: 12px;
-
-  font-weight: 600;
-
-  color: #475569;
-}
-
-/*
-|--------------------------------------------------------------------------
-| EXACT REPORT INPUT / SELECT
-|--------------------------------------------------------------------------
-|
-| Do not add custom heights here.
-| The Reports page uses padding to determine the control height.
-|--------------------------------------------------------------------------
-*/
-
-.report-filter-fields input,
-.report-filter-fields select {
-  display: block;
-
-  width: 100%;
-
-  min-width: 0;
-
-  box-sizing: border-box;
-
-  margin-top: 6px;
-
-  border: 1px solid #d9e0e6;
-
-  background: #fff;
-
-  border-radius: 7px;
-
-  padding: 10px 11px;
-
-  color: #24324a;
-
-  font: inherit;
-
-  font-size: 13px;
-
-  line-height: 18px;
-
-  outline: 0;
-}
-
-.report-filter-fields input:focus,
-.report-filter-fields select:focus {
-  border-color: var(--teal);
-}
-
-/*
-|--------------------------------------------------------------------------
-| Make date / search appearance consistent
-|--------------------------------------------------------------------------
-*/
-
-.report-filter-fields input[type="date"],
-.report-filter-fields input[type="search"],
-.report-filter-fields select {
-  height: 40px;
-}
-
-/*
-|--------------------------------------------------------------------------
-| Search
-|--------------------------------------------------------------------------
-*/
-
-.audit-search > div {
-  position: relative;
-}
-
-.audit-search > div > svg {
-  position: absolute;
-
-  top: 50%;
-
-  left: 11px;
-
-  width: 16px;
-  height: 16px;
-
-  margin-top: 3px;
-
-  color: var(--muted);
-
-  pointer-events: none;
-
-  transform: translateY(-50%);
-
-  z-index: 1;
-}
-
-.audit-search input {
-  padding-left: 35px;
-}
-
-/*
-|--------------------------------------------------------------------------
-| Filter Actions
-|--------------------------------------------------------------------------
-*/
-
-.report-filter-actions {
-  grid-column: 1 / -1;
-
-  display: flex;
-
-  justify-content: flex-end;
-
-  gap: 8px;
-}
-
-.report-filter-actions .btn {
-  display: inline-flex;
-
-  align-items: center;
-  justify-content: center;
-
-  gap: 7px;
-
-  white-space: nowrap;
-}
-
-.report-filter-actions svg {
-  width: 16px;
-
-  height: 16px;
-}
-
-/*
-|--------------------------------------------------------------------------
-| Tablet
-|--------------------------------------------------------------------------
-*/
-
-@media (max-width: 1100px) {
-  .audit-filter-fields {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/*
-|--------------------------------------------------------------------------
-| Mobile
-|--------------------------------------------------------------------------
-*/
-
-@media (max-width: 560px) {
-  .report-filter-content {
-    padding: 14px 14px 16px;
-  }
-
-  .audit-filter-fields {
-    grid-template-columns: 1fr;
-  }
-
-  .report-filter-actions {
-    flex-direction: column;
-  }
-
-  .report-filter-actions .btn {
-    width: 100%;
-  }
-
-  .quick-date-filters {
-    display: grid;
-
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .filter-chip {
-    width: 100%;
-  }
-}
-</style>

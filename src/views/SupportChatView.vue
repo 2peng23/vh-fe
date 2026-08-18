@@ -4,7 +4,7 @@ import { Download, LifeBuoy, Paperclip, Send, X } from "lucide-vue-next";
 import AppLogo from "../components/AppLogo.vue";
 import api, { errorMessage } from "../api/client";
 import { useAuthStore } from "../stores/auth";
-import { formatDateTime } from "../utils/date";
+import { formatDateTime } from "../utils";
 
 const auth = useAuthStore();
 const props = defineProps<{ embedded?: boolean; guest?: boolean }>();

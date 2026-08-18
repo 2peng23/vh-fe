@@ -72,7 +72,7 @@ function openUserPermissions(userId: number) {
 
 async function logout() {
   await auth.logout();
-  await router.push("/login");
+  await router.push("/");
 }
 
 async function loadSupportUnreadTotal() {

@@ -1,12 +1,10 @@
 import type { Ref } from "vue";
+import { localDate } from "../../utils";
 
 export type RecordRange = "today" | "week" | "month" | "all" | null;
 export type SortDirection = "asc" | "desc";
 
-export function localDate(date: Date) {
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
-}
+export { localDate };
 
 export function dateBounds(range: Exclude<RecordRange, null>) {
   const end = new Date();

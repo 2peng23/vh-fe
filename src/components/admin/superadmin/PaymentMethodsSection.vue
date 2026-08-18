@@ -4,7 +4,7 @@ import { Pencil, Plus, QrCode, Trash2, X } from "lucide-vue-next";
 import api, { errorMessage, validationErrors } from "../../../api/client";
 import type { ApiEnvelope } from "../../../types";
 import type { AdminPaymentMethod, ValidationBag } from "../../../types/admin";
-import { formatDate } from "../../../utils/date";
+import { formatDate } from "../../../utils";
 import ConfirmDeleteModal from "../../ConfirmDeleteModal.vue";
 import EmptyState from "../../EmptyState.vue";
 import LoadingState from "../../LoadingState.vue";

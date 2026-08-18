@@ -37,3 +37,8 @@ export function formatDateTime(value?: string | Date | null): string {
     ? "—"
     : new Intl.DateTimeFormat("en-PH", DATE_TIME_OPTIONS).format(date);
 }
+
+export function localDate(date: Date): string {
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}

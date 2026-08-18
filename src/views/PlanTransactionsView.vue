@@ -25,6 +25,9 @@ const {
   purchaseOpen,
   paymentMethods,
   purchasing,
+  preview,
+  loadingPreview,
+  currentSubscription,
   purchaseForm,
   planGroups,
   selectedOffering,
@@ -85,6 +88,9 @@ const {
       :selected-payment-method="selectedPaymentMethod"
       :payment-method-id="purchaseForm.payment_method_id"
       :purchasing="purchasing"
+      :preview="preview"
+      :loading-preview="loadingPreview"
+      :current-subscription="currentSubscription"
       @update:selected-offering-id="
         purchaseForm.subscription_plan_offering_id = $event
       "

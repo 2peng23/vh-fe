@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from "vue";
-import { X } from "lucide-vue-next";
+import { Eye, EyeOff, X } from "lucide-vue-next";
 import api, { errorMessage, validationErrors } from "../../../api/client";
 import type { ApiEnvelope, PaginationMeta } from "../../../types";
 import type { AdminBusiness, ValidationBag } from "../../../types/admin";
@@ -23,6 +23,8 @@ const perPage = ref(20);
 const editing = ref<AdminBusiness | null>(null);
 const creatingOwner = ref(false);
 const createErrors = ref<ValidationBag>({});
+const showOwnerPassword = ref(false);
+const showOwnerPasswordConfirmation = ref(false);
 
 const form = reactive<Record<string, string | number | undefined>>({});
 const ownerForm = reactive({
@@ -79,6 +81,8 @@ function focusBusiness(business: AdminBusiness) {
 function openCreateOwner() {
   createErrors.value = {};
   error.value = "";
+  showOwnerPassword.value = false;
+  showOwnerPasswordConfirmation.value = false;
   creatingOwner.value = true;
 }
 
@@ -132,6 +136,8 @@ async function createOwner() {
       vehicle_limit_override: "",
       plan_ends_at: defaultPlanEndDate(),
     });
+    showOwnerPassword.value = false;
+    showOwnerPasswordConfirmation.value = false;
     await load();
   } catch (e) {
     error.value = errorMessage(e);
@@ -208,8 +214,33 @@ onMounted(() => {
         <label>Status<input :value="statusFromPlanEnd(ownerForm.plan_ends_at).replace('_', ' ')" disabled /><small>Automatically based on the plan end date.</small></label>
         <label>Custom vehicle limit<input v-model.number="ownerForm.vehicle_limit_override" type="number" min="1" max="100000" placeholder="Use plan default" /><small>Optional. Leave blank to use the plan limit.</small><small v-if="createErrors.vehicle_limit_override">{{ createErrors.vehicle_limit_override[0] }}</small></label>
         <label>Plan ends<input v-model="ownerForm.plan_ends_at" type="date" required /><small v-if="createErrors.plan_ends_at">{{ createErrors.plan_ends_at[0] }}</small></label>
-        <label>Password<input v-model="ownerForm.password" type="password" autocomplete="new-password" required /><small v-if="createErrors.password">{{ createErrors.password[0] }}</small></label>
-        <label>Confirm password<input v-model="ownerForm.password_confirmation" type="password" autocomplete="new-password" required /></label>
+        <label>Password
+          <div class="password-field">
+            <input v-model="ownerForm.password" :type="showOwnerPassword ? 'text' : 'password'" autocomplete="new-password" required />
+            <button
+              type="button"
+              :aria-label="showOwnerPassword ? 'Hide password' : 'Show password'"
+              :title="showOwnerPassword ? 'Hide password' : 'Show password'"
+              @click="showOwnerPassword = !showOwnerPassword"
+            >
+              <EyeOff v-if="showOwnerPassword" /><Eye v-else />
+            </button>
+          </div>
+          <small v-if="createErrors.password">{{ createErrors.password[0] }}</small>
+        </label>
+        <label>Confirm password
+          <div class="password-field">
+            <input v-model="ownerForm.password_confirmation" :type="showOwnerPasswordConfirmation ? 'text' : 'password'" autocomplete="new-password" required />
+            <button
+              type="button"
+              :aria-label="showOwnerPasswordConfirmation ? 'Hide password confirmation' : 'Show password confirmation'"
+              :title="showOwnerPasswordConfirmation ? 'Hide password confirmation' : 'Show password confirmation'"
+              @click="showOwnerPasswordConfirmation = !showOwnerPasswordConfirmation"
+            >
+              <EyeOff v-if="showOwnerPasswordConfirmation" /><Eye v-else />
+            </button>
+          </div>
+        </label>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn" @click="creatingOwner = false">Cancel</button>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from "vue";
-import { ChevronDown, ChevronRight, Pencil, ShieldCheck, X } from "lucide-vue-next";
+import { ChevronDown, ChevronRight, Eye, EyeOff, Pencil, ShieldCheck, X } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import api, { errorMessage } from "../../../api/client";
 import { useAuthStore } from "../../../stores/auth";
@@ -30,6 +30,8 @@ const perPage = ref(20);
 const editing = ref<AdminUser | null>(null);
 const impersonatingUserId = ref<number | null>(null);
 const expandedOwners = ref<Set<number>>(new Set());
+const showPassword = ref(false);
+const showPasswordConfirmation = ref(false);
 const form = reactive<Record<string, string | number | undefined>>({});
 
 async function load() {
@@ -86,6 +88,8 @@ async function openUserDashboard(userId: number) {
 
 function editUser(row: AdminUser) {
   editing.value = row;
+  showPassword.value = false;
+  showPasswordConfirmation.value = false;
   Object.keys(form).forEach((key) => delete form[key]);
   Object.assign(form, {
     name: row.name,
@@ -216,9 +220,34 @@ onMounted(load);
         <label>Email<input v-model="form.email" type="email" required /></label>
         <label>Role<select v-model="form.role"><option>owner</option><option>staff</option></select></label>
         <label>Status<select v-model="form.status"><option>active</option><option>inactive</option></select></label>
-        <label>Password<input v-model="form.password" type="password" autocomplete="new-password" /><small>Leave blank to keep current password</small></label>
+        <label>Password
+          <div class="password-field">
+            <input v-model="form.password" :type="showPassword ? 'text' : 'password'" autocomplete="new-password" />
+            <button
+              type="button"
+              :aria-label="showPassword ? 'Hide password' : 'Show password'"
+              :title="showPassword ? 'Hide password' : 'Show password'"
+              @click="showPassword = !showPassword"
+            >
+              <EyeOff v-if="showPassword" /><Eye v-else />
+            </button>
+          </div>
+          <small>Leave blank to keep current password</small>
+        </label>
         <label v-if="form.role === 'owner'">Custom vehicle limit<input v-model.number="form.vehicle_limit_override" type="number" min="1" max="100000" placeholder="Use plan default" /><small>Leave blank to use this owner’s plan limit.</small></label>
-        <label>Confirm password<input v-model="form.password_confirmation" type="password" autocomplete="new-password" /></label>
+        <label>Confirm password
+          <div class="password-field">
+            <input v-model="form.password_confirmation" :type="showPasswordConfirmation ? 'text' : 'password'" autocomplete="new-password" />
+            <button
+              type="button"
+              :aria-label="showPasswordConfirmation ? 'Hide password confirmation' : 'Show password confirmation'"
+              :title="showPasswordConfirmation ? 'Hide password confirmation' : 'Show password confirmation'"
+              @click="showPasswordConfirmation = !showPasswordConfirmation"
+            >
+              <EyeOff v-if="showPasswordConfirmation" /><Eye v-else />
+            </button>
+          </div>
+        </label>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn" @click="editing = null">Cancel</button>

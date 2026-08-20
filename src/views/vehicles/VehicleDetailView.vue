@@ -184,25 +184,34 @@ function columns(row: any) {
   return vehicleRecordColumns(tab.value, row);
 }
 
+function queryTab() {
+  return typeof route.query.tab === "string" ? route.query.tab : "";
+}
+
+function canShowTab(value: string) {
+  return visibleTabs.value.some(([key]) => key === value);
+}
+
 async function initializeView() {
   await loadVehicle();
 
-  if (route.query.tab === "maintenance") {
+  if (queryTab() === "maintenance" && route.query.schedule) {
     tab.value = "maintenance";
     await loadMaintenanceSchedules();
     openForm();
 
-    if (route.query.schedule) {
-      form.maintenance_schedule_id = Number(route.query.schedule);
-      selectMaintenanceSchedule();
-    }
+    form.maintenance_schedule_id = Number(route.query.schedule);
+    selectMaintenanceSchedule();
     return;
   }
 
-  if (route.query.tab === "expenses") {
+  if (queryTab() === "expenses") {
     const expenseId = Number(route.query.expense);
     if (expenseId) filters.requestExpenseRecord(expenseId);
-    tab.value = "expenses";
+  }
+
+  if (canShowTab(queryTab())) {
+    tab.value = queryTab();
   }
 }
 
@@ -217,6 +226,13 @@ watch(rowsPerPage, () => {
   if (rowsPage.value === 1) loadTab();
   else rowsPage.value = 1;
 });
+
+watch(
+  () => route.query.tab,
+  () => {
+    if (canShowTab(queryTab())) tab.value = queryTab();
+  },
+);
 
 onMounted(initializeView);
 </script>

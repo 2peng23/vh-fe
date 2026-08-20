@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import { CheckCheck, FileClock, Wrench } from "lucide-vue-next";
 import api from "../api/client";
 import type { ApiEnvelope, PaginationMeta } from "../types";
@@ -9,7 +10,8 @@ import EmptyState from "../components/EmptyState.vue";
 import PaginationControls from "../components/PaginationControls.vue";
 import { formatDateTime } from "../utils";
 import { useAuthStore } from "../stores/auth";
-const auth = useAuthStore(),
+const router = useRouter(),
+  auth = useAuthStore(),
   items = ref<any[]>([]),
   loading = ref(true),
   meta = ref<PaginationMeta>(),
@@ -27,11 +29,39 @@ async function load() {
 async function readAll() {
   await api.post("/notifications/read-all");
   items.value.forEach((n) => (n.read_at = new Date().toISOString()));
+  window.dispatchEvent(new Event("vehiclehub-notifications-changed"));
 }
 async function read(n: any) {
   if (n.read_at) return;
   await api.post(`/notifications/${n.id}/read`);
   n.read_at = new Date().toISOString();
+  window.dispatchEvent(new Event("vehiclehub-notifications-changed"));
+}
+function targetTab(n: any) {
+  const title = String(n.data?.title || "").toLowerCase();
+  const message = String(n.data?.message || "").toLowerCase();
+
+  if (title.includes("document") || message.includes("registration")) return "documents";
+  if (title.includes("issue") || message.includes("warning light")) return "issues";
+  if (title.includes("maintenance") || message.includes("schedule")) return "schedules";
+
+  return "overview";
+}
+async function openNotification(n: any) {
+  if (auth.can("notifications.update")) {
+    try {
+      await read(n);
+    } catch {
+      // Navigation should still work even if marking the notification as read fails.
+    }
+  }
+
+  if (n.data?.vehicle_id) {
+    await router.push({
+      path: `/vehicles/${n.data.vehicle_id}`,
+      query: { tab: targetTab(n) },
+    });
+  }
 }
 onMounted(load);
 watch(page, load);
@@ -45,7 +75,11 @@ watch(perPage, () => {
     <PageHeader
       title="Notifications"
       description="Vehicle reminders and updates that need your attention."
-      ><button v-if="auth.can('notifications.update')" class="btn" @click="readAll">
+      ><button
+        v-if="items.length && auth.can('notifications.update')"
+        class="btn"
+        @click="readAll"
+      >
         <CheckCheck />Mark all as read
       </button></PageHeader
     ><LoadingState v-if="loading" /><EmptyState
@@ -57,9 +91,10 @@ watch(perPage, () => {
       <button
         v-for="n in items"
         :key="n.id"
+        type="button"
         class="notification-row"
         :class="{ unread: !n.read_at }"
-        @click="auth.can('notifications.update') && read(n)"
+        @click="openNotification(n)"
       >
         <span
           class="metric-icon"

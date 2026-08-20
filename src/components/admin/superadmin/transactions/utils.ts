@@ -28,6 +28,12 @@ export function isPaymentRejected(
   return transaction.payment_status === "rejected";
 }
 
+export function isPaymentExpired(
+  transaction: ReviewableAdminTransaction,
+): boolean {
+  return transaction.payment_status === "expired";
+}
+
 // Return the user-friendly label displayed by the payment status badge.
 export function paymentStatusLabel(
   transaction: ReviewableAdminTransaction,
@@ -42,6 +48,10 @@ export function paymentStatusLabel(
 
   if (isPaymentRejected(transaction)) {
     return "Payment rejected";
+  }
+
+  if (isPaymentExpired(transaction)) {
+    return "Payment expired";
   }
 
   return "Payment required";

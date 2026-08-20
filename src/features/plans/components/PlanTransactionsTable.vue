@@ -28,10 +28,15 @@ function isPendingVerification(transaction: PlanTransaction): boolean {
   return transaction.payment_status === "pending_verification";
 }
 
+function isExpired(transaction: PlanTransaction): boolean {
+  return transaction.payment_status === "expired";
+}
+
 function paymentStatusLabel(transaction: PlanTransaction): string {
   if (isPaid(transaction)) return "Paid";
   if (isPendingVerification(transaction)) return "Pending verification";
   if (transaction.payment_status === "rejected") return "Payment rejected";
+  if (isExpired(transaction)) return "Payment expired";
   return "Payment required";
 }
 </script>
@@ -84,7 +89,10 @@ function paymentStatusLabel(transaction: PlanTransaction): string {
                       "Manual payment"
                     }}
                   </strong>
-                  <small v-if="!isPaid(transaction) && !isPendingVerification(transaction)">
+                  <small v-if="isExpired(transaction)">
+                    This payment request has expired
+                  </small>
+                  <small v-else-if="!isPaid(transaction) && !isPendingVerification(transaction)">
                     Complete payment to activate your plan
                   </small>
                   <small v-else-if="isPendingVerification(transaction)">
@@ -122,7 +130,7 @@ function paymentStatusLabel(transaction: PlanTransaction): string {
               <td class="action-column">
                 <div class="row-actions modern-actions">
                   <button
-                    v-if="!isPaid(transaction) && !isPendingVerification(transaction)"
+                    v-if="!isPaid(transaction) && !isPendingVerification(transaction) && !isExpired(transaction)"
                     type="button"
                     class="btn btn-primary btn-small pay-button"
                     @click.stop="emit('pay', transaction)"
@@ -166,4 +174,3 @@ function paymentStatusLabel(transaction: PlanTransaction): string {
     </div>
   </div>
 </template>
-

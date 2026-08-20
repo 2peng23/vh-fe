@@ -36,6 +36,7 @@ const isPendingVerification = computed(
   () => props.transaction.payment_status === "pending_verification",
 );
 const isRejected = computed(() => props.transaction.payment_status === "rejected");
+const isExpired = computed(() => props.transaction.payment_status === "expired");
 
 const paymentMethod = computed(() => props.transaction.selected_payment_method);
 
@@ -44,6 +45,7 @@ const canSubmit = computed(
     !props.submitting &&
     !isPendingVerification.value &&
     !isPaid.value &&
+    !isExpired.value &&
     (paymentReference.value.trim().length > 0 || proof.value !== null),
 );
 
@@ -94,7 +96,7 @@ function submitPayment() {
         <div>
           <span class="payment-eyebrow">SECURE MANUAL PAYMENT</span>
           <h2 id="payment-flow-title">
-            {{ isPendingVerification ? "Payment submitted" : isPaid ? "Payment complete" : "Complete your payment" }}
+            {{ isExpired ? "Payment expired" : isPendingVerification ? "Payment submitted" : isPaid ? "Payment complete" : "Complete your payment" }}
           </h2>
           <p>{{ transaction.reference }}</p>
         </div>
@@ -109,7 +111,36 @@ function submitPayment() {
         </button>
       </div>
 
-      <div v-if="isPendingVerification || isPaid" class="payment-success-state">
+      <div v-if="isExpired" class="payment-success-state">
+        <div class="success-icon">
+          <Clock3 :size="32" />
+        </div>
+
+        <span class="success-eyebrow">PAYMENT REQUEST EXPIRED</span>
+
+        <h3>This payment request is no longer active</h3>
+
+        <p>
+          Payment requests expire after 3 days. Please create a new plan transaction to continue.
+        </p>
+
+        <div class="success-summary">
+          <div>
+            <span>Transaction</span>
+            <strong>{{ transaction.reference }}</strong>
+          </div>
+          <div>
+            <span>Amount</span>
+            <strong>{{ formatPlanCurrency(transaction.amount) }}</strong>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-primary done-button" @click="emit('close')">
+          Done
+        </button>
+      </div>
+
+      <div v-else-if="isPendingVerification || isPaid" class="payment-success-state">
         <div class="success-icon" :class="{ paid: isPaid }">
           <CheckCircle2 :size="32" />
         </div>

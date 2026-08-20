@@ -72,7 +72,9 @@ async function loadOptions() {
       api.get<ApiEnvelope<PaymentMethod[]>>("/payment-methods"),
     ]);
 
-    offerings.value = plansResponse.data.data;
+    offerings.value = plansResponse.data.data.filter(
+      (offering) => offering.plan !== "trial",
+    );
     paymentMethods.value = methodsResponse.data.data;
 
     const currentTier = subscription.value?.tier;

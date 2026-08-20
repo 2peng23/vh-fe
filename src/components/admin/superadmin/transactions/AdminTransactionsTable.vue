@@ -117,6 +117,9 @@ function needsReview(transaction: ReviewableAdminTransaction): boolean {
                 <small v-else-if="transaction.payment_status === 'rejected'">
                   Owner can submit a new confirmation
                 </small>
+                <small v-else-if="transaction.payment_status === 'expired'">
+                  Payment request expired after 3 days
+                </small>
                 <small v-else>
                   Waiting for the owner to submit payment
                 </small>
@@ -199,4 +202,3 @@ function needsReview(transaction: ReviewableAdminTransaction): boolean {
     />
   </div>
 </template>
-

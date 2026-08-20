@@ -33,6 +33,7 @@ const auth = useAuthStore(),
   profileOpen = ref(false),
   supportOpen = ref(false),
   supportUnread = ref(0),
+  notificationUnread = ref(0),
   globalSearch = ref(""),
   searchOpen = ref(false),
   searchLoading = ref(false),
@@ -61,6 +62,7 @@ onMounted(() => {
 });
 let searchTimer: number;
 let supportUnreadTimer: number;
+let notificationUnreadTimer: number;
 async function loadSupportUnread() {
   if (!auth.isOwner) return;
   try {
@@ -68,6 +70,18 @@ async function loadSupportUnread() {
     supportUnread.value = data.data.count || 0;
   } catch {
     supportUnread.value = 0;
+  }
+}
+async function loadNotificationUnread() {
+  if (auth.accessRestricted || !auth.can("notifications.view")) {
+    notificationUnread.value = 0;
+    return;
+  }
+  try {
+    const { data } = await api.get("/notifications/unread-count");
+    notificationUnread.value = data.data.count || 0;
+  } catch {
+    notificationUnread.value = 0;
   }
 }
 function queueSearch() {
@@ -116,12 +130,17 @@ function openDriver(name: string) {
 }
 onMounted(() => {
   loadSupportUnread();
+  loadNotificationUnread();
   supportUnreadTimer = window.setInterval(loadSupportUnread, 2000);
+  notificationUnreadTimer = window.setInterval(loadNotificationUnread, 30000);
+  window.addEventListener("vehiclehub-notifications-changed", loadNotificationUnread);
 });
 onBeforeUnmount(() => {
   clearTimeout(searchTimer);
   clearInterval(supportUnreadTimer);
+  clearInterval(notificationUnreadTimer);
   window.removeEventListener("vehiclehub-access-changed", syncAccessState);
+  window.removeEventListener("vehiclehub-notifications-changed", loadNotificationUnread);
 });
 async function logout() {
   try {
@@ -220,8 +239,8 @@ async function returnToSuperAdmin() {
           <button v-if="auth.isImpersonating" class="btn impersonation-return" @click="returnToSuperAdmin">
             <ShieldCheck :size="16" />Return to Super Admin
           </button>
-          <RouterLink v-if="!auth.accessRestricted" to="/notifications" class="icon-btn notification"
-            ><Bell :size="20" /><span></span
+          <RouterLink v-if="auth.can('notifications.view')" to="/notifications" class="icon-btn notification"
+            ><Bell :size="20" /><span v-if="notificationUnread > 0">{{ notificationUnread > 99 ? '99+' : notificationUnread }}</span
           ></RouterLink>
           <button v-if="auth.isOwner" type="button" class="icon-btn support-icon" :class="{ unread: supportUnread > 0 }" title="Contact support" aria-label="Open support chat" @click="supportOpen = true">
             <MessageCircle :size="20" /><span v-if="supportUnread">{{ supportUnread > 99 ? '99+' : supportUnread }}</span>

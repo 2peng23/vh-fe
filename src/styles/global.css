@@ -387,13 +387,21 @@ h3,
 }
 .notification span {
   position: absolute;
-  width: 7px;
-  height: 7px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
   background: #e84b4b;
   border: 2px solid #fff;
-  border-radius: 50%;
-  right: 8px;
-  top: 8px;
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  right: 3px;
+  top: 3px;
 }
 .profile {
   display: flex;
@@ -795,6 +803,20 @@ tbody tr:last-child td {
 }
 tbody tr:hover {
   background: #fbfcfc;
+}
+tbody tr.clickable-row {
+  cursor: pointer;
+}
+tbody tr.clickable-row:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: -2px;
+  background: #f0fbf8;
+}
+tbody tr.clickable-row:hover .vehicle-cell strong,
+tbody tr.clickable-row:focus-visible .vehicle-cell strong {
+  color: var(--teal-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 td a {
   color: var(--teal);

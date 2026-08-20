@@ -209,7 +209,16 @@ onMounted(async () => {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="v in vehicles" :key="v.id">
+                  <tr
+                    v-for="v in vehicles"
+                    :key="v.id"
+                    class="clickable-row"
+                    role="link"
+                    tabindex="0"
+                    @click="router.push(`/vehicles/${v.id}`)"
+                    @keydown.enter="router.push(`/vehicles/${v.id}`)"
+                    @keydown.space.prevent="router.push(`/vehicles/${v.id}`)"
+                  >
                     <td>
                       <div class="vehicle-cell">
                         <span><CarFront /></span>
@@ -226,7 +235,9 @@ onMounted(async () => {
                     </td>
                     <td><StatusBadge :status="v.status" /></td>
                     <td>
-                      <RouterLink :to="`/vehicles/${v.id}`">View</RouterLink>
+                      <RouterLink :to="`/vehicles/${v.id}`" @click.stop
+                        >View</RouterLink
+                      >
                     </td>
                   </tr>
                 </tbody>

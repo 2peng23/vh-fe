@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
-import { KeyRound, Save, UserRound } from "lucide-vue-next";
+import { Eye, EyeOff, KeyRound, Save, UserRound } from "lucide-vue-next";
 import PageHeader from "../components/PageHeader.vue";
 import LoadingState from "../components/LoadingState.vue";
 import api, { errorMessage, validationErrors } from "../api/client";
@@ -15,6 +15,9 @@ const message = ref("");
 const error = ref("");
 const profileErrors = ref<Record<string, string[]>>({});
 const passwordErrors = ref<Record<string, string[]>>({});
+const showCurrentPassword = ref(false);
+const showNewPassword = ref(false);
+const showConfirmPassword = ref(false);
 
 const profileForm = reactive({
   name: "",
@@ -150,34 +153,64 @@ onMounted(loadProfile);
 
         <label class="grid gap-2 text-xs font-extrabold text-slate-700">
           Current password
-          <input
-            v-model="passwordForm.current_password"
-            type="password"
-            required
-            autocomplete="current-password"
-          />
+          <div class="password-field">
+            <input
+              v-model="passwordForm.current_password"
+              :type="showCurrentPassword ? 'text' : 'password'"
+              required
+              autocomplete="current-password"
+            />
+            <button
+              type="button"
+              :aria-label="showCurrentPassword ? 'Hide current password' : 'Show current password'"
+              :title="showCurrentPassword ? 'Hide current password' : 'Show current password'"
+              @click="showCurrentPassword = !showCurrentPassword"
+            >
+              <EyeOff v-if="showCurrentPassword" /><Eye v-else />
+            </button>
+          </div>
           <small v-if="passwordErrors.current_password" class="text-red-600">{{ passwordErrors.current_password[0] }}</small>
         </label>
 
         <label class="grid gap-2 text-xs font-extrabold text-slate-700">
           New password
-          <input
-            v-model="passwordForm.password"
-            type="password"
-            required
-            autocomplete="new-password"
-          />
+          <div class="password-field">
+            <input
+              v-model="passwordForm.password"
+              :type="showNewPassword ? 'text' : 'password'"
+              required
+              autocomplete="new-password"
+            />
+            <button
+              type="button"
+              :aria-label="showNewPassword ? 'Hide new password' : 'Show new password'"
+              :title="showNewPassword ? 'Hide new password' : 'Show new password'"
+              @click="showNewPassword = !showNewPassword"
+            >
+              <EyeOff v-if="showNewPassword" /><Eye v-else />
+            </button>
+          </div>
           <small v-if="passwordErrors.password" class="text-red-600">{{ passwordErrors.password[0] }}</small>
         </label>
 
         <label class="grid gap-2 text-xs font-extrabold text-slate-700">
           Confirm new password
-          <input
-            v-model="passwordForm.password_confirmation"
-            type="password"
-            required
-            autocomplete="new-password"
-          />
+          <div class="password-field">
+            <input
+              v-model="passwordForm.password_confirmation"
+              :type="showConfirmPassword ? 'text' : 'password'"
+              required
+              autocomplete="new-password"
+            />
+            <button
+              type="button"
+              :aria-label="showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'"
+              :title="showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'"
+              @click="showConfirmPassword = !showConfirmPassword"
+            >
+              <EyeOff v-if="showConfirmPassword" /><Eye v-else />
+            </button>
+          </div>
         </label>
 
         <button class="btn btn-primary justify-self-start max-sm:w-full" type="submit" :disabled="savingPassword">

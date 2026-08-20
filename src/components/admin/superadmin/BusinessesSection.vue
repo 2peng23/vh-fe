@@ -204,7 +204,7 @@ onMounted(() => {
         <label>Owner name<input v-model="ownerForm.owner_name" required /><small v-if="createErrors.owner_name">{{ createErrors.owner_name[0] }}</small></label>
         <label>Email<input v-model="ownerForm.email" type="email" required /><small v-if="createErrors.email">{{ createErrors.email[0] }}</small></label>
         <label>Phone<input v-model="ownerForm.phone" /></label>
-        <label>Plan<select v-model="ownerForm.subscription_plan"><option value="trial">Trial — 3 vehicles</option><option value="starter">Starter — 5 vehicles</option><option value="business">Business — 25 vehicles</option><option value="enterprise">Enterprise — 100 vehicles</option></select></label>
+        <label>Plan<select v-model="ownerForm.subscription_plan"><option value="trial">Trial - 10 vehicles</option><option value="starter">Starter - 10 vehicles</option><option value="business">Business - 30 vehicles</option><option value="enterprise">Enterprise - 100 vehicles</option></select></label>
         <label>Status<input :value="statusFromPlanEnd(ownerForm.plan_ends_at).replace('_', ' ')" disabled /><small>Automatically based on the plan end date.</small></label>
         <label>Custom vehicle limit<input v-model.number="ownerForm.vehicle_limit_override" type="number" min="1" max="100000" placeholder="Use plan default" /><small>Optional. Leave blank to use the plan limit.</small><small v-if="createErrors.vehicle_limit_override">{{ createErrors.vehicle_limit_override[0] }}</small></label>
         <label>Plan ends<input v-model="ownerForm.plan_ends_at" type="date" required /><small v-if="createErrors.plan_ends_at">{{ createErrors.plan_ends_at[0] }}</small></label>

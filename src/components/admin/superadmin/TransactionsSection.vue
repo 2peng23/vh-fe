@@ -315,7 +315,8 @@ onBeforeUnmount(revokeProofUrl);
                 </option>
                 <option value="paid">Paid</option>
                 <option value="rejected">Rejected</option>
-                <option value="unpaid">Payment required</option>
+                <option value="not_paid">Payment required</option>
+                <option value="expired">Payment expired</option>
               </select>
             </label>
 

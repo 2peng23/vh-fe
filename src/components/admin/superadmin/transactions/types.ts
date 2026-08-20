@@ -5,7 +5,8 @@ export type AdminPaymentStatus =
   | "not_paid"
   | "pending_verification"
   | "paid"
-  | "rejected";
+  | "rejected"
+  | "expired";
 
 // Extend the existing admin transaction while replacing its old
 // payment_status type with the statuses used by the new payment flow.

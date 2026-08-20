@@ -41,11 +41,12 @@ export type SelectedOffering = EnrichedPlanOffering & {
 };
 
 export type PaymentStatus =
-  | "unpaid"
+  | "not_paid"
   | "pending"
   | "pending_verification"
   | "paid"
   | "rejected"
+  | "expired"
   | string;
 
 export type PlanTransaction = {

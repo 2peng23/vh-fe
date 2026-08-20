@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import { onMounted, reactive, ref, watch } from "vue";
 import { Pencil, Plus, X } from "lucide-vue-next";
 import api, { errorMessage, validationErrors } from "../../../api/client";
 import type { ApiEnvelope } from "../../../types";
@@ -16,7 +16,7 @@ const error = ref("");
 const modalOpen = ref(false);
 const editing = ref<AdminPlanOffering | null>(null);
 const formErrors = ref<ValidationBag>({});
-const defaultForm = () => ({ plan: "starter", name: "Starter", duration_months: 1, price: "", vehicle_limit: 5, details: "", is_active: true });
+const defaultForm = () => ({ plan: "starter", name: "Starter", duration_months: 1, price: "", vehicle_limit: 10, details: "", is_active: true });
 const form = reactive(defaultForm());
 
 async function load() {
@@ -57,6 +57,13 @@ async function savePlan() {
 }
 
 onMounted(load);
+
+watch(
+  () => form.plan,
+  (plan) => {
+    if (plan === "trial") form.duration_months = 1;
+  },
+);
 </script>
 
 <template>
@@ -75,7 +82,7 @@ onMounted(load);
         <tbody>
           <tr v-for="offering in rows" :key="offering.id">
             <td><strong>{{ offering.name }}</strong><small class="cell-small capitalize">{{ offering.plan }}</small></td>
-            <td>{{ offering.duration_months === 12 ? "1 year" : `${offering.duration_months} month${offering.duration_months > 1 ? "s" : ""}` }}</td>
+            <td>{{ offering.plan === "trial" ? "30 days" : offering.duration_months === 12 ? "1 year" : `${offering.duration_months} month${offering.duration_months > 1 ? "s" : ""}` }}</td>
             <td>{{ formatCurrency(offering.price) }}</td>
             <td>{{ offering.vehicle_limit }}</td>
             <td>{{ offering.details || "—" }}</td>
@@ -95,9 +102,9 @@ onMounted(load);
       </div>
       <div v-if="error" class="alert error">{{ error }}</div>
       <div class="field-grid plan-offering-fields">
-        <label>Plan<select v-model="form.plan" required><option value="starter">Starter</option><option value="business">Business</option><option value="enterprise">Enterprise</option></select></label>
+        <label>Plan<select v-model="form.plan" required><option value="trial">Trial</option><option value="starter">Starter</option><option value="business">Business</option><option value="enterprise">Enterprise</option></select></label>
         <label>Display name<input v-model="form.name" required maxlength="100" /><small v-if="formErrors.name">{{ formErrors.name[0] }}</small></label>
-        <label>Billing period<select v-model.number="form.duration_months" required><option :value="1">1 month</option><option :value="6">6 months</option><option :value="12">1 year</option></select></label>
+        <label>Billing period<select v-model.number="form.duration_months" required><option :value="1">{{ form.plan === "trial" ? "30 days" : "1 month" }}</option><option :value="6" :disabled="form.plan === 'trial'">6 months</option><option :value="12" :disabled="form.plan === 'trial'">1 year</option></select></label>
         <label>Price<input v-model="form.price" type="number" min="0" step="0.01" required /><small v-if="formErrors.price">{{ formErrors.price[0] }}</small></label>
         <label>Vehicle limit<input v-model.number="form.vehicle_limit" type="number" min="1" required /><small v-if="formErrors.vehicle_limit">{{ formErrors.vehicle_limit[0] }}</small></label>
         <label>Status<select v-model="form.is_active"><option :value="true">Active</option><option :value="false">Inactive</option></select></label>

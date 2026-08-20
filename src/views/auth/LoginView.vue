@@ -12,8 +12,8 @@ import AppLogo from "../../components/AppLogo.vue";
 import SupportChatView from "../SupportChatView.vue";
 import { useAuthStore } from "../../stores/auth";
 import { errorMessage } from "../../api/client";
-const email = ref("owner1@vh.test"),
-  password = ref("password"),
+const email = ref(""),
+  password = ref(""),
   show = ref(false),
   error = ref(""),
   auth = useAuthStore(),
@@ -82,7 +82,7 @@ async function submit() {
               type="email"
               required
               autocomplete="email"
-              placeholder="you@company.com"
+              placeholder="abc@company.com"
             />
           </label>
           <label class="grid gap-2 text-xs font-bold text-slate-700">

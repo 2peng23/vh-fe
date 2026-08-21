@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { RouterLink } from "vue-router";
 import vehicleHubIcon from "../assets/vehicle-hub-2png.png";
+import { appName, appTagline } from "../config/app";
 
 const props = withDefaults(
   defineProps<{
@@ -27,11 +28,11 @@ const subtitleClass = computed(() =>
   <RouterLink
     to="/"
     class="inline-flex items-center gap-[11px] no-underline"
-    aria-label="Go to Vehicle Hub home"
+    :aria-label="`Go to ${appName} home`"
   >
     <img
       :src="vehicleHubIcon"
-      alt="Vehicle Hub by 2PNG"
+      :alt="`${appName} by 2PNG`"
       class="block h-[34px] w-[34px] rounded-[7px] object-contain"
     />
 
@@ -40,14 +41,14 @@ const subtitleClass = computed(() =>
         class="block font-['Manrope'] text-xl font-extrabold leading-none"
         :class="titleClass"
       >
-        Vehicle Hub
+        {{ appName }}
       </strong>
 
       <small
         class="mt-1 block text-[7px] font-semibold tracking-[1.8px]"
         :class="subtitleClass"
       >
-        VEHICLE MANAGEMENT
+        {{ appTagline }}
       </small>
     </div>
   </RouterLink>

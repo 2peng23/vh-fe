@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterLink } from "vue-router";
-import vehicleHubIcon from "../../assets/vehicle-hub-2png.png";
+import AppLogo from "../AppLogo.vue";
+import { appName } from "../../config/app";
 
 const emit = defineEmits<{
   "open-support": [];
@@ -14,22 +15,7 @@ const year = new Date().getFullYear();
       class="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr_1fr] lg:px-8"
     >
       <div>
-        <div class="flex items-center gap-3">
-          <img
-            class="h-10 w-10 rounded-lg object-contain"
-            :src="vehicleHubIcon"
-            alt=""
-          />
-          <div>
-            <strong
-              class="font-['Manrope'] text-base font-extrabold text-slate-950"
-              >Vehicle Hub</strong
-            >
-            <p class="mt-1 text-xs font-semibold text-slate-500">
-              Vehicle and fleet management
-            </p>
-          </div>
-        </div>
+        <AppLogo />
       </div>
       <div>
         <h3
@@ -76,7 +62,7 @@ const year = new Date().getFullYear();
     <div
       class="border-t border-slate-200 px-4 py-5 text-center text-xs font-semibold text-slate-500"
     >
-      © {{ year }} Vehicle Hub. All rights reserved.
+      © {{ year }} {{ appName }}. All rights reserved.
     </div>
   </footer>
 </template>

@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import { appName } from "../../config/app";
+
 const customers = [
   "Trucking Companies",
   "Logistics Businesses",
   "Delivery Operations",
-  "Construction Fleets",
+  "Construction Vehicles",
   "Service Companies",
-  "Corporate Vehicle Fleets",
+  "Corporate Vehicle Operations",
   "Rental Businesses",
   "Small and Medium Businesses",
 ];
@@ -18,7 +20,7 @@ const customers = [
         <p class="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-300">Who it serves</p>
         <h2 class="mt-3 font-['Manrope'] text-3xl font-extrabold md:text-4xl">Built for Businesses That Manage Vehicles</h2>
         <p class="mt-4 text-base leading-7 text-slate-300">
-          Vehicle Hub fits teams that need practical tracking for owned, assigned, or serviced vehicles.
+          {{ appName }} fits teams that need practical tracking for owned, assigned, or serviced vehicles.
         </p>
       </div>
       <div class="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

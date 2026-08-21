@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from "v
 import { Download, LifeBuoy, Paperclip, Send, X } from "lucide-vue-next";
 import AppLogo from "../components/AppLogo.vue";
 import api, { errorMessage } from "../api/client";
+import { appName } from "../config/app";
 import { useAuthStore } from "../stores/auth";
 import { formatDateTime } from "../utils";
 
@@ -161,7 +162,7 @@ onBeforeUnmount(() => clearInterval(refreshTimer));
     <section class="support-chat-card">
       <header class="support-chat-head">
         <AppLogo />
-        <div><LifeBuoy /><span><strong>Vehicle Hub Support</strong><small>{{ guest ? (guestProfile.email || 'Guest support') : auth.user?.business?.name }}</small></span></div>
+        <div><LifeBuoy /><span><strong>{{ appName }} Support</strong><small>{{ guest ? (guestProfile.email || 'Guest support') : auth.user?.business?.name }}</small></span></div>
         <button v-if="embedded" type="button" class="icon-btn support-close" aria-label="Close support chat" @click="emit('close')"><X /></button>
       </header>
       <form v-if="guest && !hasConversation" class="guest-support-start" @submit.prevent="startGuestConversation">
@@ -174,7 +175,7 @@ onBeforeUnmount(() => clearInterval(refreshTimer));
       <div v-else ref="thread" class="support-thread" @scroll="handleThreadScroll">
         <p v-if="loadingOlder" class="support-history-loading">Loading earlier messages…</p>
         <p v-if="loading" class="support-empty">Loading conversation…</p>
-        <div v-else-if="!messages.length" class="support-empty"><LifeBuoy /><strong>How can we help?</strong><span>Send a message and the Vehicle Hub support team will reply here.</span></div>
+        <div v-else-if="!messages.length" class="support-empty"><LifeBuoy /><strong>How can we help?</strong><span>Send a message and the {{ appName }} support team will reply here.</span></div>
         <article v-for="item in messages" :key="item.id" :class="['support-bubble', ['tenant', 'guest'].includes(item.sender_type) ? 'mine' : 'theirs']">
           <p v-if="item.message"><template v-for="(part, index) in messageParts(item.message)" :key="index"><a v-if="part.url" :href="part.text" target="_blank" rel="noopener">{{ part.text }}</a><span v-else>{{ part.text }}</span></template></p>
           <button v-if="item.attachment_name" type="button" class="support-attachment" @click="downloadAttachment(item)"><Paperclip /><span><strong>{{ item.attachment_name }}</strong><small>{{ fileSize(item.attachment_size) }}</small></span><Download /></button>

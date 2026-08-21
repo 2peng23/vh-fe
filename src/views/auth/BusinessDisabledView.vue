@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import AppLogo from "../../components/AppLogo.vue";
 import SupportChatView from "../SupportChatView.vue";
+import { appName } from "../../config/app";
 import { useAuthStore } from "../../stores/auth";
 import { useRouter } from "vue-router";
 
@@ -90,7 +91,7 @@ async function backToLogin() {
         <p v-if="auth.isOwner" class="mb-6 leading-7 text-slate-500">
           Your business was disabled by the platform administrator. Your plan
           information and business data remain stored, but access is paused.
-          Contact Vehicle Hub support for assistance.
+          Contact {{ appName }} support for assistance.
         </p>
         <p v-else class="mb-6 leading-7 text-slate-500">
           This business was disabled by the platform administrator. Owner and

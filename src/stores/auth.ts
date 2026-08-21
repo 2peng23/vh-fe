@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import api from "../api/client";
+import { appName } from "../config/app";
 import type { ApiEnvelope, User } from "../types";
 
 export const useAuthStore = defineStore("auth", {
@@ -36,7 +37,7 @@ export const useAuthStore = defineStore("auth", {
         >("/auth/login", {
           email,
           password,
-          device_name: "Vehicle Hub Web",
+          device_name: `${appName} Web`,
         });
         this.setSession(data.data);
       } finally {

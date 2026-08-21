@@ -10,7 +10,7 @@ const vehicles = [
   <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/10 sm:p-5">
     <div class="flex items-center justify-between border-b border-slate-200 pb-4">
       <div>
-        <p class="text-xs font-bold uppercase tracking-[0.16em] text-teal-700">Fleet overview</p>
+        <p class="text-xs font-bold uppercase tracking-[0.16em] text-teal-700">Vehicle overview</p>
         <h2 class="mt-1 font-['Manrope'] text-xl font-extrabold text-slate-950">Operations Dashboard</h2>
       </div>
       <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Live ready</span>

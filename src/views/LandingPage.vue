@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { MessageCircle } from "lucide-vue-next";
+import { ArrowUp, MessageCircle } from "lucide-vue-next";
 
 import {
   BenefitsSection,
@@ -17,6 +17,7 @@ import {
 
 import SupportChatView from "./SupportChatView.vue";
 
+import { appName } from "../config/app";
 import { getPublicPlanOfferings } from "../services";
 import type { PublicPlanOffering } from "../types";
 
@@ -25,6 +26,7 @@ const loadingPlans = ref(true);
 const pricingError = ref("");
 
 const supportOpen = ref(false);
+const showScrollTop = ref(false);
 
 const trialPlan = computed(() =>
   plans.value.find((plan) => plan.plan === "trial"),
@@ -54,6 +56,14 @@ function closeSupport() {
   supportOpen.value = false;
 }
 
+function updateScrollTopVisibility() {
+  showScrollTop.value = window.scrollY > 480;
+}
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 function handleEscape(event: KeyboardEvent) {
   if (event.key === "Escape" && supportOpen.value) {
     closeSupport();
@@ -65,10 +75,10 @@ watch(supportOpen, (open) => {
 });
 
 onMounted(async () => {
-  document.title = "Vehicle Hub | Vehicle & Fleet Management";
+  document.title = `${appName} | Vehicle Management`;
 
   const description =
-    "Manage vehicles, maintenance, mileage, expenses, documents, drivers, issues, and fleet operations from one centralized platform.";
+    "Manage vehicles, maintenance, mileage, expenses, documents, drivers, issues, and vehicle operations from one centralized platform.";
 
   let meta = document.querySelector<HTMLMetaElement>(
     'meta[name="description"]',
@@ -83,6 +93,10 @@ onMounted(async () => {
   meta.content = description;
 
   window.addEventListener("keydown", handleEscape);
+  window.addEventListener("scroll", updateScrollTopVisibility, {
+    passive: true,
+  });
+  updateScrollTopVisibility();
 
   try {
     plans.value = await getPublicPlanOfferings();
@@ -96,6 +110,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", handleEscape);
+  window.removeEventListener("scroll", updateScrollTopVisibility);
   document.body.style.overflow = "";
 });
 </script>
@@ -128,12 +143,33 @@ onBeforeUnmount(() => {
 
     <LandingFooter @open-support="openSupport" />
 
+    <!-- Scroll To Top Button -->
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="translate-y-2 opacity-0"
+      enter-to-class="translate-y-0 opacity-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="translate-y-0 opacity-100"
+      leave-to-class="translate-y-2 opacity-0"
+    >
+      <button
+        v-if="showScrollTop && !supportOpen"
+        type="button"
+        class="fixed bottom-20 right-5 z-[80] grid h-11 w-11 place-items-center rounded-full border border-teal-100 bg-white text-teal-700 shadow-[0_10px_30px_rgba(15,23,42,0.14)] transition duration-200 hover:-translate-y-0.5 hover:bg-teal-50 focus:outline-none focus:ring-4 focus:ring-teal-100 sm:bottom-24 sm:right-6"
+        aria-label="Scroll to top"
+        title="Scroll to top"
+        @click="scrollToTop"
+      >
+        <ArrowUp class="h-5 w-5" />
+      </button>
+    </Transition>
+
     <!-- Floating Support Button -->
     <button
       v-if="!supportOpen"
       type="button"
       class="cursor-pointer group fixed bottom-5 right-5 z-[80] inline-flex items-center gap-2.5 rounded-full bg-teal-700 px-4 py-3.5 text-sm font-extrabold text-white shadow-[0_10px_35px_rgba(15,118,110,0.3)] transition duration-200 hover:-translate-y-0.5 hover:bg-teal-800 hover:shadow-[0_14px_40px_rgba(15,118,110,0.35)] focus:outline-none focus:ring-4 focus:ring-teal-100 sm:bottom-6 sm:right-6 sm:px-5"
-      aria-label="Contact Vehicle Hub support"
+      :aria-label="`Contact ${appName} support`"
       @click="openSupport"
     >
       <span

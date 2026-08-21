@@ -6,6 +6,8 @@ services:
       context: .
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api/v1}
+        APP_NAME: ${APP_NAME:-Vehicle Hub}
+        APP_TAGLINE: ${APP_TAGLINE:-VEHICLE MANAGEMENT}
     ports:
       - "${FRONTEND_PORT:-5173}:80"
     restart: unless-stopped

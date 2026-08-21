@@ -2,6 +2,7 @@
 import { RouterLink } from "vue-router";
 import { ArrowRight, CheckCircle2 } from "lucide-vue-next";
 import ProductPreview from "./ProductPreview.vue";
+import { appName } from "../../config/app";
 
 defineProps<{ trialLabel: string }>();
 </script>
@@ -15,10 +16,10 @@ defineProps<{ trialLabel: string }>();
           {{ trialLabel }}
         </div>
         <h1 class="mt-6 max-w-3xl font-['Manrope'] text-4xl font-extrabold leading-tight text-slate-950 sm:text-5xl lg:text-6xl">
-          Manage Your Vehicles Smarter. Run Your Fleet Better.
+          Manage Your Vehicles Smarter. Run Your Business Better.
         </h1>
         <p class="mt-6 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-          Vehicle Hub helps businesses manage vehicles, maintenance, mileage, expenses, documents, drivers, issues, and fleet operations from one centralized platform.
+          {{ appName }} helps businesses manage vehicles, maintenance, mileage, expenses, documents, drivers, issues, and vehicle operations from one centralized platform.
         </p>
         <div class="mt-8 flex flex-col gap-3 sm:flex-row">
           <RouterLink class="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-teal-700 px-5 text-sm font-extrabold text-white shadow-sm transition-colors hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2" to="/register">

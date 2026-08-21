@@ -2,6 +2,7 @@
 import { computed, ref } from "vue";
 import { ChevronDown } from "lucide-vue-next";
 import type { PublicPlanOffering } from "../../types";
+import { appName } from "../../config/app";
 
 const props = defineProps<{ plans: PublicPlanOffering[] }>();
 const openIndex = ref(0);
@@ -16,16 +17,16 @@ const trialLimit = computed(() =>
   trial.value ? `up to ${trial.value.vehicle_limit.toLocaleString()} vehicles` : "the trial vehicle limit configured for your account",
 );
 const questions = computed(() => [
-  { question: "What is Vehicle Hub?", answer: "Vehicle Hub is a SaaS platform for managing vehicle records, maintenance, mileage, expenses, documents, drivers, issues, schedules, reports, staff, notifications, and support in one workspace." },
-  { question: "How does the free trial work?", answer: `Create a business account and use Vehicle Hub during ${trialDuration.value}. You can review paid plans when your team is ready to upgrade.` },
+  { question: `What is ${appName}?`, answer: `${appName} is a SaaS platform for managing vehicle records, maintenance, mileage, expenses, documents, drivers, issues, schedules, reports, staff, notifications, and support in one workspace.` },
+  { question: "How does the free trial work?", answer: `Create a business account and use ${appName} during ${trialDuration.value}. You can review paid plans when your team is ready to upgrade.` },
   { question: "How many vehicles can I manage during the trial?", answer: `The current trial supports ${trialLimit.value}.` },
-  { question: "Do I need a credit card to register?", answer: "No credit card is required to create a Vehicle Hub trial account." },
+  { question: "Do I need a credit card to register?", answer: `No credit card is required to create a ${appName} trial account.` },
   { question: "Can I upgrade my subscription later?", answer: "Yes. Owners can view plan options and request an upgrade from the subscription area after signing in." },
   { question: "Can I downgrade my plan?", answer: "Yes. Owners can request a downgrade, and the application handles the subscription change through the existing plan flow." },
   { question: "What happens when my trial expires?", answer: "Your account is guided to the subscription area so the owner can review available plans and continue service." },
-  { question: "Can I add staff members?", answer: "Yes. Vehicle Hub includes staff management and permissions for supported roles." },
-  { question: "Can I track maintenance and expenses?", answer: "Yes. Maintenance records, issue tracking, mileage, fuel, and expenses are part of the fleet workspace." },
-  { question: "Can I manage vehicle documents?", answer: "Yes. Vehicle Hub keeps important vehicle documents organized with the related vehicle records." },
+  { question: "Can I add staff members?", answer: `Yes. ${appName} includes staff management and permissions for supported roles.` },
+  { question: "Can I track maintenance and expenses?", answer: "Yes. Maintenance records, issue tracking, mileage, fuel, and expenses are part of the vehicle workspace." },
+  { question: "Can I manage vehicle documents?", answer: `Yes. ${appName} keeps important vehicle documents organized with the related vehicle records.` },
 ]);
 </script>
 

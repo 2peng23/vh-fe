@@ -49,7 +49,7 @@ const durationLabel = computed(() => {
       <CheckCircle2 class="mt-0.5 h-4 w-4 flex-none text-teal-700" />
       <span>Up to {{ formatNumber(plan.vehicle_limit) }} vehicles</span>
     </div>
-    <p class="mt-5 min-h-20 text-sm leading-6 text-slate-600">{{ plan.details || "Flexible fleet management for your vehicle operations." }}</p>
+    <p class="mt-5 min-h-20 text-sm leading-6 text-slate-600">{{ plan.details || "Flexible vehicle management for your vehicle operations." }}</p>
     <RouterLink
       class="mt-auto inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-sm font-extrabold transition-colors focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2"
       :class="featured ? 'bg-teal-700 text-white hover:bg-teal-800' : 'border border-slate-200 bg-white text-slate-800 hover:bg-slate-50'"

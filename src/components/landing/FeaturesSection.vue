@@ -31,9 +31,9 @@ const features: Array<{ title: string; description: string; icon: Component }> =
   <section id="features" class="bg-slate-50 py-16 md:py-20 lg:py-24">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="max-w-3xl">
-        <p class="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-700">Fleet workspace</p>
+        <p class="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-700">Vehicle workspace</p>
         <h2 class="mt-3 font-['Manrope'] text-3xl font-extrabold text-slate-950 md:text-4xl">
-          Everything You Need to Manage Your Fleet
+          Everything You Need to Manage Your Vehicle
         </h2>
         <p class="mt-4 text-base leading-7 text-slate-600">
           Bring the daily work of vehicle operations into one clean system your team can keep current.

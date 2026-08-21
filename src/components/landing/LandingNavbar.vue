@@ -2,7 +2,7 @@
 import { ref } from "vue";
 import { RouterLink } from "vue-router";
 import { Menu, X } from "lucide-vue-next";
-import vehicleHubIcon from "../../assets/vehicle-hub-2png.png";
+import AppLogo from "../AppLogo.vue";
 
 const open = ref(false);
 const navItems = [
@@ -20,13 +20,7 @@ function closeMenu() {
 <template>
   <header class="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
     <nav class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8" aria-label="Public navigation">
-      <a class="flex items-center gap-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2" href="#hero" @click="closeMenu">
-        <img class="h-10 w-10 rounded-lg object-contain" :src="vehicleHubIcon" alt="" />
-        <span class="flex flex-col leading-none">
-          <strong class="font-['Manrope'] text-base font-extrabold text-slate-950">Vehicle Hub</strong>
-          <small class="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Fleet Management</small>
-        </span>
-      </a>
+      <AppLogo class="rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2" @click="closeMenu" />
 
       <div class="hidden items-center gap-8 lg:flex">
         <a

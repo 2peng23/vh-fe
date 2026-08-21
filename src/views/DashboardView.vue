@@ -19,6 +19,7 @@ import StatusBadge from "../components/StatusBadge.vue";
 import { useAuthStore } from "../stores/auth";
 import AppLogo from "../components/AppLogo.vue";
 import SupportChatView from "./SupportChatView.vue";
+import { appName } from "../config/app";
 import { formatCurrency } from "../utils";
 type Dashboard = {
   vehicles: { total: number; active: number; maintenance: number };
@@ -75,7 +76,7 @@ onMounted(async () => {
         </p>
         <p v-else>
           Your business plan has ended and access is currently disabled. Please
-          notify your business owner. Only the owner can contact Vehicle Hub
+          notify your business owner. Only the owner can contact {{ appName }}
           support and manage the renewal.
         </p>
         <button

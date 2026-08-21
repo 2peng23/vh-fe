@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { Check } from "lucide-vue-next";
 import type {
   EnrichedPlanGroup,
   PaymentMethod,
   SelectedOffering,
   SubscriptionPreview,
 } from "../types";
+import { appName } from "../../../config/app";
 
 import PlanCheckout from "./PlanCheckout.vue";
 import PlanPricingHero from "./PlanPricingHero.vue";
@@ -44,14 +46,28 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <section class="plan-purchase-page">
+  <section class="plan-purchase-page landing-pricing-section">
     <!-- Pricing Hero -->
     <div class="pricing-hero-wrapper">
       <PlanPricingHero />
     </div>
 
+    <section class="landing-included-panel plan-purchase-included-panel">
+      <div>
+        <span class="plan-section-label">EVERYTHING INCLUDED</span>
+        <h3>All plans include the full {{ appName }} toolkit</h3>
+      </div>
+
+      <ul>
+        <li v-for="benefit in benefits" :key="benefit">
+          <span class="benefit-check"><Check :size="13" /></span>
+          <span>{{ benefit }}</span>
+        </li>
+      </ul>
+    </section>
+
     <!-- Pricing Plans -->
-    <div class="plan-tier-grid">
+    <div class="landing-plan-tier-grid plan-tier-grid">
       <PlanTierCard
         v-for="group in planGroups"
         :key="group.name"
@@ -59,6 +75,7 @@ const emit = defineEmits<{
         :group="group"
         :benefits="benefits"
         :selected-offering-id="selectedOfferingId"
+        compact
         @update:selected-offering-id="emit('update:selectedOfferingId', $event)"
       />
     </div>
@@ -109,6 +126,10 @@ const emit = defineEmits<{
   width: 100%;
   min-width: 0;
   margin-bottom: 28px;
+}
+
+.plan-purchase-included-panel {
+  margin-bottom: 24px;
 }
 
 /*

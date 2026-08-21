@@ -6,6 +6,8 @@ import type {
 } from "./types";
 import { formatCurrency } from "../../utils";
 
+const PLAN_TIER_ORDER = ["trial", "starter", "business", "enterprise"];
+
 export function formatPlanCurrency(value: number | string): string {
   return formatCurrency(value);
 }
@@ -41,6 +43,85 @@ export function planClass(name: string): string {
 
 export function isPopularPlan(name: string): boolean {
   return name.toLowerCase() === "business";
+}
+
+function normalizedPlan(plan?: string | null): string {
+  return String(plan || "").trim().toLowerCase();
+}
+
+function tierIndex(plan?: string | null): number {
+  return PLAN_TIER_ORDER.indexOf(normalizedPlan(plan));
+}
+
+export function recommendedPlanForCurrentTier(currentTier?: string | null): string {
+  const currentIndex = tierIndex(currentTier);
+
+  if (currentIndex < 0) return "business";
+
+  return PLAN_TIER_ORDER[Math.min(currentIndex + 1, PLAN_TIER_ORDER.length - 1)];
+}
+
+export function findRecommendedOffering(
+  offerings: PlanOffering[],
+  currentTier?: string | null,
+): PlanOffering | undefined {
+  const targetPlan = recommendedPlanForCurrentTier(currentTier);
+  const targetMonthly = offerings.find(
+    (offering) =>
+      normalizedPlan(offering.plan) === targetPlan &&
+      Number(offering.duration_months) === 1,
+  );
+
+  if (targetMonthly) return targetMonthly;
+
+  const targetOffering = offerings.find(
+    (offering) => normalizedPlan(offering.plan) === targetPlan,
+  );
+
+  if (targetOffering) return targetOffering;
+
+  return (
+    offerings.find((offering) => Number(offering.duration_months) === 1) ??
+    offerings[0]
+  );
+}
+
+export function findRenewalOffering(
+  offerings: PlanOffering[],
+  currentTier?: string | null,
+): PlanOffering | undefined {
+  const currentPlan = normalizedPlan(currentTier);
+
+  if (!currentPlan || currentPlan === "trial") return undefined;
+
+  return (
+    offerings.find(
+      (offering) =>
+        normalizedPlan(offering.plan) === currentPlan &&
+        Number(offering.duration_months) === 1,
+    ) ?? offerings.find((offering) => normalizedPlan(offering.plan) === currentPlan)
+  );
+}
+
+export function findUpgradeOffering(
+  offerings: PlanOffering[],
+  currentTier?: string | null,
+): PlanOffering | undefined {
+  const currentIndex = tierIndex(currentTier);
+
+  if (currentIndex < 0) return findRecommendedOffering(offerings, currentTier);
+
+  const nextPlan = PLAN_TIER_ORDER[currentIndex + 1];
+
+  if (!nextPlan) return undefined;
+
+  return (
+    offerings.find(
+      (offering) =>
+        normalizedPlan(offering.plan) === nextPlan &&
+        Number(offering.duration_months) === 1,
+    ) ?? offerings.find((offering) => normalizedPlan(offering.plan) === nextPlan)
+  );
 }
 
 export function buildPlanGroups(

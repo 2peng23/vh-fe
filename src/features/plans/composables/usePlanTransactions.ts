@@ -12,7 +12,7 @@ import type {
   SelectedOffering,
   SubscriptionPreview,
 } from "../types";
-import { buildPlanGroups } from "../utils";
+import { buildPlanGroups, findRecommendedOffering } from "../utils";
 
 export function usePlanTransactions() {
   const route = useRoute();
@@ -143,12 +143,10 @@ export function usePlanTransactions() {
     offerings.value = plansResponse.data.data;
     paymentMethods.value = methodsResponse.data.data;
 
-    const defaultOffering =
-      offerings.value.find(
-        (offering) =>
-          offering.name.toLowerCase() === "business" &&
-          Number(offering.duration_months) === 1,
-      ) ?? offerings.value[0];
+    const defaultOffering = findRecommendedOffering(
+      offerings.value,
+      currentSubscription.value?.tier,
+    );
 
     purchaseForm.value = {
       subscription_plan_offering_id: String(defaultOffering?.id ?? ""),

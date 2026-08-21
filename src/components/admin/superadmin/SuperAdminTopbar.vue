@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { LogOut, Menu } from "lucide-vue-next";
+import { appName } from "../../../config/app";
 
 interface Props {
   title: string;
@@ -20,7 +21,7 @@ const emit = defineEmits<{
       <Menu />
     </button>
     <div>
-      <small>Vehicle Hub Control Center</small>
+      <small>{{ appName }} Control Center</small>
       <strong>{{ title }}</strong>
     </div>
     <div class="superadmin-topbar-account">

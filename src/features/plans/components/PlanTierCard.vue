@@ -8,6 +8,7 @@ defineProps<{
   group: EnrichedPlanGroup;
   benefits: readonly string[];
   selectedOfferingId: string;
+  compact?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -41,7 +42,7 @@ const emit = defineEmits<{
       </div>
     </header>
 
-    <div class="plan-features-wrapper">
+    <div v-if="!compact" class="plan-features-wrapper">
       <span class="plan-section-label">EVERYTHING INCLUDED</span>
 
       <ul class="plan-benefits">
@@ -73,4 +74,3 @@ const emit = defineEmits<{
     </div>
   </article>
 </template>
-

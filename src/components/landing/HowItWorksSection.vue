@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { appName } from "../../config/app";
+
 const steps = [
   { title: "Create Your Business Account", description: "Register your business and start your free trial." },
-  { title: "Add Your Vehicles", description: "Add vehicles, drivers, maintenance records, expenses, documents, and other fleet information." },
-  { title: "Manage Everything in One Place", description: "Monitor your fleet and operations from the Vehicle Hub dashboard." },
+  { title: "Add Your Vehicles", description: "Add vehicles, drivers, maintenance records, expenses, documents, and other vehicle information." },
+  { title: "Manage Everything in One Place", description: `Monitor your vehicles and operations from the ${appName} dashboard.` },
 ];
 </script>
 

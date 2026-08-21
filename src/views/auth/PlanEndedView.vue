@@ -3,6 +3,7 @@ import { LifeBuoy } from "lucide-vue-next";
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppLogo from "../../components/AppLogo.vue";
+import { appName } from "../../config/app";
 import { useAuthStore } from "../../stores/auth";
 
 const auth = useAuthStore();
@@ -66,7 +67,7 @@ async function returnToSuperAdmin() {
       </p>
       <p v-else class="mb-6 leading-7 text-slate-500">
         Your business plan has ended and access is currently disabled.
-        Please notify your business owner. Only the owner can contact Vehicle Hub support and manage the renewal.
+        Please notify your business owner. Only the owner can contact {{ appName }} support and manage the renewal.
       </p>
       <button v-if="auth.isOwner" class="flex min-h-11 w-full items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-extrabold text-white shadow-sm transition hover:bg-teal-800" type="button" @click="router.push('/plan-transactions?purchase=1')">Purchase plan</button>
       <button v-if="auth.isImpersonating" class="mt-2.5 flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-extrabold text-slate-700 shadow-sm transition hover:bg-slate-50" type="button" @click="returnToSuperAdmin">Return to Super Admin</button>

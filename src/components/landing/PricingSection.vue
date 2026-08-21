@@ -8,6 +8,7 @@ import type {
   EnrichedPlanOffering,
   PlanOffering,
 } from "../../features/plans/types";
+import { appName } from "../../config/app";
 import { PLAN_BENEFITS } from "../../features/plans/constants";
 import PlanBillingOption from "../../features/plans/components/PlanBillingOption.vue";
 import {
@@ -99,7 +100,7 @@ function registerRoute(plan: string, offeringId?: string | number) {
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-3xl text-center">
         <p class="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-700">Plans</p>
-        <h2 class="mt-3 font-['Manrope'] text-3xl font-extrabold text-slate-950 md:text-4xl">Choose the Right Plan for Your Fleet</h2>
+        <h2 class="mt-3 font-['Manrope'] text-3xl font-extrabold text-slate-950 md:text-4xl">Choose the Right Plan for Your Vehicle</h2>
         <p class="mt-4 text-base leading-7 text-slate-600">
           Start with the free trial, then upgrade when your operation needs more capacity.
         </p>
@@ -124,7 +125,7 @@ function registerRoute(plan: string, offeringId?: string | number) {
           <div>
             <span class="plan-tier-label">FREE TRIAL</span>
             <h3>{{ trialPlan.name }}</h3>
-            <p>{{ trialPlan.details || "Explore Vehicle Hub before choosing a paid subscription." }}</p>
+            <p>{{ trialPlan.details || `Explore ${appName} before choosing a paid subscription.` }}</p>
           </div>
           <div class="landing-trial-facts">
             <span><strong>{{ trialPlan.duration_days || 30 }}</strong> days</span>
@@ -139,7 +140,7 @@ function registerRoute(plan: string, offeringId?: string | number) {
         <section class="landing-included-panel" :class="{ 'mt-12': !trialPlan, 'mt-6': trialPlan }">
           <div>
             <span class="plan-section-label">EVERYTHING INCLUDED</span>
-            <h3>All plans include the full Vehicle Hub toolkit</h3>
+            <h3>All plans include the full {{ appName }} toolkit</h3>
           </div>
           <ul>
             <li v-for="benefit in PLAN_BENEFITS" :key="benefit">

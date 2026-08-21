@@ -53,18 +53,25 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/vehicle-hub-fe:latest
             ghcr.io/${{ github.repository_owner }}/vehicle-hub-fe:${{ github.sha }}
 
-  deploy-local:
-    name: Deploy to local Docker
+  deploy-vps:
+    name: Deploy to VPS
     needs: test-build-publish
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, vehicle-hub-fe]
+    runs-on: [self-hosted, vehicle-hub-fe-vps]
 
     steps:
-      - name: Add Docker Desktop to PATH
-        run: echo "/Applications/Docker.app/Contents/Resources/bin" >> "$GITHUB_PATH"
-
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Create frontend environment file
+        env:
+          FRONTEND_ENV_FILE: ${{ secrets.FRONTEND_ENV_FILE }}
+        run: |
+          if [ -z "$FRONTEND_ENV_FILE" ]; then
+            echo "FRONTEND_ENV_FILE secret is empty. Add the full frontend .env content to the repository secret."
+            exit 1
+          fi
+          printf '%s\n' "$FRONTEND_ENV_FILE" > .env
 
       - name: Build and start frontend
         run: docker compose up -d --build --remove-orphans

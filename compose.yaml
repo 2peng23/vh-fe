@@ -9,5 +9,5 @@ services:
         APP_NAME: ${APP_NAME:-Vehicle Hub}
         APP_TAGLINE: ${APP_TAGLINE:-VEHICLE MANAGEMENT}
     ports:
-      - "${FRONTEND_PORT:-5173}:80"
+      - "127.0.0.1:${FRONTEND_PORT:-5173}:80"
     restart: unless-stopped

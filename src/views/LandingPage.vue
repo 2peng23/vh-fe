@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { ArrowUp, MessageCircle } from "lucide-vue-next";
 
 import {
@@ -70,10 +70,6 @@ function handleEscape(event: KeyboardEvent) {
   }
 }
 
-watch(supportOpen, (open) => {
-  document.body.style.overflow = open ? "hidden" : "";
-});
-
 onMounted(async () => {
   document.title = `${appName} | Vehicle Management`;
 
@@ -111,7 +107,6 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", handleEscape);
   window.removeEventListener("scroll", updateScrollTopVisibility);
-  document.body.style.overflow = "";
 });
 </script>
 
@@ -181,24 +176,22 @@ onBeforeUnmount(() => {
       <span class="hidden sm:inline"> Contact support </span>
     </button>
 
-    <!-- Support Modal -->
+    <!-- Support Drawer -->
     <Teleport to="body">
       <Transition
         enter-active-class="transition duration-200 ease-out"
-        enter-from-class="opacity-0"
+        enter-from-class="opacity-0 translate-x-4"
         enter-to-class="opacity-100"
         leave-active-class="transition duration-150 ease-in"
         leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
+        leave-to-class="opacity-0 translate-x-4"
       >
         <div
           v-if="supportOpen"
-          class="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/55 p-3 backdrop-blur-[2px] sm:p-6"
+          class="modal-backdrop support-modal-backdrop"
           @click.self="closeSupport"
         >
-          <div class="relative max-h-[calc(100vh-32px)] w-full max-w-[900px]">
-            <SupportChatView embedded guest @close="closeSupport" />
-          </div>
+          <SupportChatView embedded guest @close="closeSupport" />
         </div>
       </Transition>
     </Teleport>

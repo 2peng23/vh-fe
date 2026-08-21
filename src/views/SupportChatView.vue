@@ -161,7 +161,7 @@ onBeforeUnmount(() => clearInterval(refreshTimer));
   <main class="support-page" :class="{ embedded }">
     <section class="support-chat-card">
       <header class="support-chat-head">
-        <AppLogo />
+        <AppLogo :compact="embedded" />
         <div><LifeBuoy /><span><strong>{{ appName }} Support</strong><small>{{ guest ? (guestProfile.email || 'Guest support') : auth.user?.business?.name }}</small></span></div>
         <button v-if="embedded" type="button" class="icon-btn support-close" aria-label="Close support chat" @click="emit('close')"><X /></button>
       </header>

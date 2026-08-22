@@ -5,6 +5,10 @@ export const ADMIN_PAGE_META: Record<AdminTab, AdminPageMeta> = {
     title: "Dashboard",
     description: "Monitor businesses, plans, users, and vehicles across the platform.",
   },
+  logistics: {
+    title: "Logistics",
+    description: "Import and manage logistics contacts from CSV or XLSX files.",
+  },
   businesses: {
     title: "Businesses",
     description: "Manage tenant businesses, plans, limits, and account access.",

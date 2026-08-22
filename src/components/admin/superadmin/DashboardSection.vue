@@ -8,6 +8,7 @@ import {
   MessageCircle,
   QrCode,
   ShieldCheck,
+  Truck,
   Users,
 } from "lucide-vue-next";
 import api, { errorMessage } from "../../../api/client";
@@ -28,6 +29,7 @@ const loading = ref(true);
 const error = ref("");
 
 const quickLinks: Array<{ id: Exclude<AdminTab, "dashboard">; label: string; icon: typeof Building2 }> = [
+  { id: "logistics", label: "Logistics", icon: Truck },
   { id: "businesses", label: "Businesses", icon: Building2 },
   { id: "users", label: "All users", icon: Users },
   { id: "permissions", label: "Permissions", icon: ShieldCheck },

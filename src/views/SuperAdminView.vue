@@ -10,6 +10,7 @@ import type { SupportConversation } from "../types/support";
 import AdminPageHeading from "../components/admin/superadmin/AdminPageHeading.vue";
 import BusinessesSection from "../components/admin/superadmin/BusinessesSection.vue";
 import DashboardSection from "../components/admin/superadmin/DashboardSection.vue";
+import LogisticsSection from "../components/admin/superadmin/LogisticsSection.vue";
 import PaymentMethodsSection from "../components/admin/superadmin/PaymentMethodsSection.vue";
 import PermissionsSection from "../components/admin/superadmin/PermissionsSection.vue";
 import PlansSection from "../components/admin/superadmin/PlansSection.vue";
@@ -139,6 +140,8 @@ onBeforeUnmount(() => {
         </AdminPageHeading>
 
         <DashboardSection v-if="tab === 'dashboard'" @navigate="selectTab" />
+
+        <LogisticsSection v-else-if="tab === 'logistics'" />
 
         <BusinessesSection
           v-else-if="tab === 'businesses'"

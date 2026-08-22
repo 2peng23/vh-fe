@@ -7,6 +7,7 @@ import {
   MessageCircle,
   QrCode,
   ShieldCheck,
+  Truck,
   Users,
   X,
 } from "lucide-vue-next";
@@ -33,6 +34,7 @@ const emit = defineEmits<{
 
 const navigation: Array<{ id: AdminTab; label: string; icon: typeof LayoutDashboard }> = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "logistics", label: "Logistics", icon: Truck },
   { id: "businesses", label: "Businesses", icon: Building2 },
   { id: "users", label: "All users", icon: Users },
   { id: "permissions", label: "Permissions", icon: ShieldCheck },

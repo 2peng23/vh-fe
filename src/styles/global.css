@@ -1508,7 +1508,7 @@ label small {
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  padding: 24px 18px;
+  padding: 22px 18px;
   background: #07192b;
   color: #fff;
 }
@@ -1517,7 +1517,7 @@ label small {
   align-items: center;
   justify-content: space-between;
   flex: 0 0 auto;
-  padding: 0 8px 25px;
+  padding: 0 8px 21px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 .superadmin-sidebar-close,
@@ -1528,9 +1528,9 @@ label small {
   display: flex;
   flex-direction: column;
   flex: 1;
-  gap: 6px;
+  gap: 4px;
   min-height: 0;
-  padding-top: 27px;
+  padding-top: 22px;
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-gutter: stable;
@@ -1548,7 +1548,7 @@ label small {
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 46px;
+  min-height: 42px;
   padding: 0 13px;
   border: 0;
   border-radius: 8px;
@@ -1584,7 +1584,7 @@ label small {
 .superadmin-sidebar-account {
   flex: 0 0 auto;
   margin-top: auto;
-  padding: 16px;
+  padding: 14px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   background: #10263a;
@@ -1607,14 +1607,14 @@ label small {
   width: 15px;
 }
 .superadmin-sidebar-account strong {
-  margin-top: 10px;
+  margin-top: 8px;
   font-size: 14px;
 }
 .superadmin-sidebar-account button {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 15px;
+  margin-top: 12px;
   padding: 0;
   border: 0;
   background: transparent;

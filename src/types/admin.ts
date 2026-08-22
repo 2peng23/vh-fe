@@ -137,6 +137,7 @@ export interface AdminPermissionUser extends AdminUser {
 
 export type AdminTab =
   | "dashboard"
+  | "logistics"
   | "businesses"
   | "users"
   | "permissions"
